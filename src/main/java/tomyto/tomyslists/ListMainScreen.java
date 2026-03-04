@@ -34,7 +34,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         return super.keyPressed(input);
     }
 
-        @Override
+    @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
         return OwoUIAdapter.create(this, Containers::verticalFlow);
     }
@@ -56,7 +56,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Container for material list
         rootComponent.child(
                 Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77),
-                                Containers.verticalFlow(Sizing.fill(100), Sizing.content())  // <-- child container
+                                Containers.verticalFlow(Sizing.fill(100), Sizing.fill())
                                         .surface(Surface.DARK_PANEL)
                         )
                         .surface(Surface.DARK_PANEL)
@@ -66,7 +66,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Button bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
-                        .child(Components.button(Component.literal("Test"),buttonComponent -> {System.out.println("Test");})
+                        .child(Components.button(Component.literal("Test"),buttonComponent -> {Minecraft.getInstance().setScreen(new MaterialListScreen());})
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(30), Sizing.fill(100))
                         )
@@ -77,5 +77,4 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
 
     }
-
 }
