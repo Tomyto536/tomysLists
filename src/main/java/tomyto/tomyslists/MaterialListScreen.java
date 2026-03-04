@@ -1,5 +1,6 @@
 package tomyto.tomyslists;
 
+import com.mojang.authlib.minecraft.client.MinecraftClient;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -11,13 +12,21 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import io.wispforest.owo.ui.component.CheckboxComponent;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
 
+    private String selectedFile = null;
     private FlowLayout scrollContent;
-    private final List<CheckboxComponent> checkboxes = new ArrayList<>();
+    public String configFile = "tomyslistconfig.txt";
+
+    Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
+            .resolve("config")
+            .resolve("litematica");
 
 
     @Override
@@ -34,7 +43,10 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
 
         //Top bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(10))
+                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24))
+                        .child((Components.label(Component.literal("Choose one material list")))
+                                .sizing(Sizing.fill(100), Sizing.content())
+                                .margins(Insets.both(10,6)))
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
         );
@@ -52,18 +64,19 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
         //Button bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
-                        .child(Components.button(Component.literal("Test"),buttonComponent -> {addItem("Test");})
+                        .child(Components.button(Component.literal("Go back"),buttonComponent -> {Minecraft.getInstance().setScreen(new ListMainScreen());})
                                 .margins(Insets.both(10,5))
-                                .sizing(Sizing.fill(30), Sizing.fill(100))
+                                .sizing(Sizing.content(), Sizing.fill(100))
                         )
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
 
         );
 
-
-
+        loadSchematicFiles();
     }
+
+
     public void addItem(String text) {
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
@@ -76,17 +89,53 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
                         .margins(Insets.both(5,4))
         );
 
-        CheckboxComponent checkbox = (CheckboxComponent) Components.checkbox(Component.literal(""))
-                .sizing(Sizing.fixed(20), Sizing.fixed(20))
-                .margins(Insets.both(0,1));
-
-
-        row.child(checkbox);
+        row.child(
+                Components.button(Component.literal("Select"), button -> {
+                    try {
+                        Files.writeString(schematicFolder.resolve(configFile), text);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    Minecraft.getInstance().setScreen(new ListMainScreen());
+                }).sizing(Sizing.fixed(50), Sizing.fixed(20))
+        );
 
         row.surface(Surface.DARK_PANEL)
                 .margins(Insets.both(5, 0));
 
-        checkboxes.add(checkbox);
         scrollContent.child(row);
     }
+
+    public void loadSchematicFiles() {
+
+
+
+        if (!Files.exists(schematicFolder)) {
+            return;
+        }
+        if (!Files.exists(schematicFolder.resolve(configFile))) {
+            try {
+                Files.createFile(schematicFolder.resolve(configFile));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        try {
+            Files.list(schematicFolder)
+                    .filter(path -> path.toString().endsWith(".txt") && !path.toString().equals(schematicFolder.resolve(configFile).toString()))
+                    .forEach(path -> {
+                        String fileName = path.getFileName().toString();
+                        String displayName = fileName.replace(".txt", "");
+                        addItem(displayName);
+                    });
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 }
