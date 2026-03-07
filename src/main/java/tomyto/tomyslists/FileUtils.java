@@ -10,6 +10,7 @@ import java.util.Map;
 public class FileUtils {
 
     public static final String SELECTED_MARKER = "*";
+    public static final String CHECKEDOFF_MARKER = "@";
 
     public static Map<String, Integer> loadMaterialList(Path filePath) {
         Map<String, Integer> materials = new LinkedHashMap<>();
@@ -68,6 +69,8 @@ public class FileUtils {
         try {
             for (String line : Files.readAllLines(filePath)) {
                 if (line.isBlank()) continue;
+                //if (line.startsWith(CHECKEDOFF_MARKER)) continue;
+
                 // Strip marker if present
                 if (line.startsWith(SELECTED_MARKER)) {
                     line = line.substring(1);

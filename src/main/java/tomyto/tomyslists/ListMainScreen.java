@@ -43,6 +43,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public final List<FlowLayout> rows = new ArrayList<>();
     private int selectedIndex = -1;
     private io.wispforest.owo.ui.container.ScrollContainer<?> scrollContainer;
+    public final List<String> rowNames = new ArrayList<>();
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -72,12 +73,52 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         if (checkoffKey.matches(input)) {
-            //Do something
+            if (selectedIndex >= 0 && selectedIndex < rows.size()) {
+                // Get the name from the selected row's label
+                String name = rowNames.get(selectedIndex);
+
+                // Remove from display
+                scrollContent.removeChild(rows.get(selectedIndex));
+                rows.remove(selectedIndex);
+                rowNames.remove(selectedIndex);
+
+                // Clamp selected index
+                selectedIndex = Math.min(selectedIndex, rows.size() - 1);
+                if (selectedIndex >= 0) {
+                    Effects.select(rows, selectedIndex);
+                }
+
+                // Save to file
+                try {
+                    String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+                    Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                    CheckOffItems.checkOff(materialFile, name);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             return true;
         }
 
         if (bringBackKey.matches(input)) {
-            //Do something
+            try {
+                String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                CheckOffItems.bringBack(materialFile);
+
+                // Clear and reload
+                rows.clear();
+                rowNames.clear();
+                scrollContent.clearChildren();
+                loadMaterialList();
+
+                selectedIndex = 0;
+                Effects.select(rows, selectedIndex);
+                scrollContainer.scrollTo(rows.get(selectedIndex));
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return true;
         }
 
@@ -113,14 +154,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .margins(Insets.both(10,5))
         );
 
-//
-//        rootComponent.child(
-//                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77), scrollContent)
-//                        .surface(Surface.DARK_PANEL)
-//                        .margins(Insets.both(10, 5))
-//        );
-
-
         //Button bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
@@ -136,6 +169,18 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         loadMaterialList();
     }
 
+    //Scroll to selected row on opening
+    @Override
+    public void init() {
+        super.init();
+
+        if (selectedIndex >= 0 && selectedIndex < rows.size()) {
+            int targetIndex = Math.max(0, selectedIndex -3);
+            scrollContainer.scrollTo(rows.get(targetIndex));
+        }
+    }
+
+
     @Override
     public void onClose() {
         try {
@@ -150,6 +195,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
         super.onClose();
     }
+
 
     private void loadMaterialList() {
         Path configPath = schematicFolder.resolve(configFile);
@@ -182,6 +228,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addRow(String name, int total) {
+        //Skip the line if item is checked off
+        if (name.startsWith(CheckOffItems.CHECKEDOFF_MARKER)) return;
+
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
 
@@ -218,6 +267,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 .margins(Insets.both(5, 0));
 
         rows.add(row);
+        rowNames.add(name);
         scrollContent.child(row);
 
         int rowIndex = rows.size() - 1; // capture index before adding
