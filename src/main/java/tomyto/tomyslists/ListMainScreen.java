@@ -5,9 +5,12 @@ import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Flow;
 
+import com.mojang.authlib.yggdrasil.response.MinecraftTexturesPayload;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -28,11 +31,17 @@ import net.minecraft.network.chat.Component;
 import tomyto.tomyslists.tomyslistsClient;
 
 import static tomyto.tomyslists.tomyslistsClient.openListMainScreenKey;
+import static tomyto.tomyslists.tomyslistsClient.scrollUpKey;
+import static tomyto.tomyslists.tomyslistsClient.scrollDownKey;
+import static tomyto.tomyslists.tomyslistsClient.checkoffKey;
+import static tomyto.tomyslists.tomyslistsClient.bringBackKey;
 
 public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
     private FlowLayout scrollContent;
     public String configFile = "tomyslistconfig.txt";
+    public final List<FlowLayout> rows = new ArrayList<>();
+    private int selectedIndex = -1;
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -43,8 +52,32 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         if (openListMainScreenKey.matches(input)) {
             Minecraft.getInstance().setScreen(null);
+            onClose();
             return true;
         }
+
+        if (scrollUpKey.matches(input)) {
+            selectedIndex = Math.max(0, selectedIndex - 1);
+            Effects.select(rows, selectedIndex);
+            return true;
+        }
+
+        if (scrollDownKey.matches(input)) {
+            selectedIndex = Math.min(rows.size() - 1, selectedIndex + 1);
+            Effects.select(rows, selectedIndex);
+            return true;
+        }
+
+        if (checkoffKey.matches(input)) {
+            //Do something
+            return true;
+        }
+
+        if (bringBackKey.matches(input)) {
+            //Do something
+            return true;
+        }
+
         return super.keyPressed(input);
     }
 
@@ -92,6 +125,21 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         loadMaterialList();
     }
 
+    @Override
+    public void onClose() {
+        try {
+            String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+            if (!selectedFileName.isBlank()) {
+                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
+                FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        super.onClose();
+    }
+
     private void loadMaterialList() {
         Path configPath = schematicFolder.resolve(configFile);
 
@@ -109,9 +157,17 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
             materials.forEach((name, total) -> addRow(name, total));
 
+            int savedIndex = FileUtils.getSelectedIndex(materialFile);
+            if (savedIndex >= 0) {
+                selectedIndex = savedIndex;
+                Effects.select(rows, selectedIndex);
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
     }
 
     private void addRow(String name, int total) {
@@ -141,7 +197,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         // Total count
         row.child(
-                Components.label(Component.literal("x" + total))
+                Components.label(Component.literal(FileUtils.formatAmount(total)))
                         .sizing(Sizing.fill(25), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
@@ -149,6 +205,16 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         row.surface(Surface.DARK_PANEL)
                 .margins(Insets.both(5, 0));
 
+        rows.add(row);
         scrollContent.child(row);
+
+        int rowIndex = rows.size() - 1; // capture index before adding
+        row.mouseDown().subscribe((click, doubled) -> {
+
+            selectedIndex = rowIndex;
+            Effects.select(rows, rowIndex);
+            return true;
+        });
     }
+
 }
