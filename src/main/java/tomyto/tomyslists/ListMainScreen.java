@@ -42,6 +42,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public String configFile = "tomyslistconfig.txt";
     public final List<FlowLayout> rows = new ArrayList<>();
     private int selectedIndex = -1;
+    private io.wispforest.owo.ui.container.ScrollContainer<?> scrollContainer;
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -59,12 +60,14 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         if (scrollUpKey.matches(input)) {
             selectedIndex = Math.max(0, selectedIndex - 1);
             Effects.select(rows, selectedIndex);
+            scrollToRow(selectedIndex);
             return true;
         }
 
         if (scrollDownKey.matches(input)) {
             selectedIndex = Math.min(rows.size() - 1, selectedIndex + 1);
             Effects.select(rows, selectedIndex);
+            scrollToRow(selectedIndex);
             return true;
         }
 
@@ -103,11 +106,19 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Scroll content
         scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
 
+        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77), scrollContent);
         rootComponent.child(
-                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77), scrollContent)
+                scrollContainer
                         .surface(Surface.DARK_PANEL)
-                        .margins(Insets.both(10, 5))
+                        .margins(Insets.both(10,5))
         );
+
+//
+//        rootComponent.child(
+//                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77), scrollContent)
+//                        .surface(Surface.DARK_PANEL)
+//                        .margins(Insets.both(10, 5))
+//        );
 
 
         //Button bar
@@ -191,14 +202,15 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         // Item name
         row.child(
                 Components.label(Component.literal(name))
-                        .sizing(Sizing.fill(60), Sizing.content())
+                        .sizing(Sizing.fill(40), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
         // Total count
         row.child(
                 Components.label(Component.literal(FileUtils.formatAmount(total)))
-                        .sizing(Sizing.fill(25), Sizing.content())
+                        .horizontalTextAlignment(HorizontalAlignment.RIGHT)
+                        .sizing(Sizing.fill(45), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
@@ -215,6 +227,31 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             Effects.select(rows, rowIndex);
             return true;
         });
+    }
+
+    private void scrollToRow(int index) {
+        if (index < 0 || index >= rows.size()) return;
+
+        int viewportTop = scrollContainer.y();
+        int viewportBottom = viewportTop + scrollContainer.height();
+        int rowHeight = 24;
+        int viewportHeight = scrollContainer.height();
+        int contentHeight = scrollContent.height();
+
+        io.wispforest.owo.ui.core.Component row = rows.get(index);
+        int rowTop = row.y();
+        int rowBottom = rowTop + row.height();
+
+
+
+        if (rowTop < viewportTop) {
+            int targetIndex = Math.max(0, index - 3);
+            scrollContainer.scrollTo(rows.get(targetIndex));
+        } else if (rowBottom > viewportBottom) {
+            int targetY = ((index + 3) * rowHeight) - viewportHeight;
+            double progress = (double) targetY / (contentHeight - viewportHeight);
+            scrollContainer.scrollTo(Math.max(0, Math.min(1, progress)));
+        }
     }
 
 }

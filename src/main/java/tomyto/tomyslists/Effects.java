@@ -44,5 +44,4 @@ public class Effects {
         return selectedRow;
     }
 
-
 }
