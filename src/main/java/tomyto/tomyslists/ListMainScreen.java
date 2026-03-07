@@ -8,7 +8,10 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.Flow;
 
-
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.core.*;
 import io.wispforest.owo.ui.core.Insets;
@@ -73,15 +76,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .margins(Insets.both(10, 5))
         );
 
-//        //Container for material list
-//        rootComponent.child(
-//                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77),
-//                                Containers.verticalFlow(Sizing.fill(100), Sizing.fill())
-//                                        .surface(Surface.DARK_PANEL)
-//                        )
-//                        .surface(Surface.DARK_PANEL)
-//                        .margins(Insets.both(10,5))
-//        );
 
         //Button bar
         rootComponent.child(
@@ -110,9 +104,11 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             if (!Files.exists(materialFile)) return;
 
-            Map<String, Integer> materials = FileUtils.parseMaterialList(materialFile);
+            Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
+            if (materials.isEmpty()) return;
 
             materials.forEach((name, total) -> addRow(name, total));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -122,20 +118,36 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
 
+        // Convert name to item stack
+        ResourceLocation itemId = ResourceLocation.tryParse(
+                "minecraft:" + name.toLowerCase().replace(" ", "_")
+        );
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
+        ItemStack stack = new ItemStack(item);
+
+        // Item icon
         row.child(
-                Components.label(Component.literal(name))
-                        .sizing(Sizing.fill(70), Sizing.content())
-                        .margins(Insets.both(5,4))
+                Components.item(stack)
+                        .sizing(Sizing.fixed(16), Sizing.fixed(16))
+                        .margins(Insets.both(4, 4))
         );
 
+        // Item name
+        row.child(
+                Components.label(Component.literal(name))
+                        .sizing(Sizing.fill(60), Sizing.content())
+                        .margins(Insets.both(5, 4))
+        );
+
+        // Total count
         row.child(
                 Components.label(Component.literal("x" + total))
-                        .sizing(Sizing.fill(30), Sizing.content())
-                        .margins(Insets.both(5,4))
+                        .sizing(Sizing.fill(25), Sizing.content())
+                        .margins(Insets.both(5, 4))
         );
 
         row.surface(Surface.DARK_PANEL)
-                .margins(Insets.both(5,0));
+                .margins(Insets.both(5, 0));
 
         scrollContent.child(row);
     }
