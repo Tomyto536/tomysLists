@@ -44,6 +44,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     private int selectedIndex = -1;
     private io.wispforest.owo.ui.container.ScrollContainer<?> scrollContainer;
     public final List<String> rowNames = new ArrayList<>();
+    private boolean skipInitScroll = false;
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -90,7 +91,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
                 // Save to file
                 try {
-                    String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+                    String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
                     Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
                     CheckOffItems.checkOff(materialFile, name);
                 } catch (IOException e) {
@@ -102,7 +103,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         if (bringBackKey.matches(input)) {
             try {
-                String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
                 Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
                 CheckOffItems.bringBack(materialFile);
 
@@ -140,6 +141,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Top bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(10))
+                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem()))
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
         );
@@ -161,6 +163,10 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.content(), Sizing.fill(100))
                         )
+                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
+                                .margins(Insets.both(10, 5))
+                                .sizing(Sizing.content(), Sizing.fill(100))
+                        )
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
 
@@ -174,8 +180,15 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public void init() {
         super.init();
 
+        System.out.println("IM CALLED " + skipInitScroll);
+
+        if (skipInitScroll) {
+            skipInitScroll = false;
+            return;
+        }
+
         if (selectedIndex >= 0 && selectedIndex < rows.size()) {
-            int targetIndex = Math.max(0, selectedIndex -3);
+            int targetIndex = Math.max(0, selectedIndex - 3);
             scrollContainer.scrollTo(rows.get(targetIndex));
         }
     }
@@ -184,7 +197,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void onClose() {
         try {
-            String selectedFileName = Files.readString(schematicFolder.resolve(configFile)).trim();
+            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
             if (!selectedFileName.isBlank()) {
                 Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
                 Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
@@ -203,7 +216,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         if (!Files.exists(configPath)) return;
 
         try {
-            String selectedFileName = Files.readString(configPath).trim();
+            String selectedFileName = Files.readAllLines(configPath).get(0).trim();
             if (selectedFileName.isBlank()) return;
 
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
@@ -272,9 +285,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         int rowIndex = rows.size() - 1; // capture index before adding
         row.mouseDown().subscribe((click, doubled) -> {
-
-            selectedIndex = rowIndex;
-            Effects.select(rows, rowIndex);
+            selectedIndex = rows.indexOf(row);
+            Effects.select(rows, rows.indexOf(row));
             return true;
         });
     }
@@ -303,5 +315,62 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             scrollContainer.scrollTo(Math.max(0, Math.min(1, progress)));
         }
     }
+
+    private void groupSelectedItem() {
+        if (selectedIndex < 0 || selectedIndex >= rowNames.size()) return;
+
+        String selectedName = rowNames.get(selectedIndex);
+        try {
+            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+            GroupingUtils.groupItemsAfterSelected(materialFile, schematicFolder.resolve(configFile), selectedName);
+
+            // Find which rows match the grouping and need to move
+            Map<String, List<String>> groupings = GroupingUtils.loadGroupings(schematicFolder.resolve(configFile));
+            Map.Entry<String, List<String>> matchedGrouping = GroupingUtils.findGroupingForItem(selectedName, groupings);
+            if (matchedGrouping == null) return;
+
+            // Find matching row indices (excluding selected)
+            List<Integer> matchingIndices = new ArrayList<>();
+            for (int i = 0; i < rowNames.size(); i++) {
+                if (i == selectedIndex) continue;
+                String name = rowNames.get(i);
+                boolean matches = name.toLowerCase().contains(matchedGrouping.getKey().toLowerCase());
+                boolean isIgnored = matchedGrouping.getValue().stream()
+                        .anyMatch(term -> name.toLowerCase().contains(term.toLowerCase()));
+                if (matches && !isIgnored) matchingIndices.add(i);
+            }
+
+            // Remove matching rows from their current positions (in reverse to preserve indices)
+            List<FlowLayout> matchingRows = new ArrayList<>();
+            List<String> matchingNames = new ArrayList<>();
+            for (int i = matchingIndices.size() - 1; i >= 0; i--) {
+                int idx = matchingIndices.get(i);
+                matchingRows.add(0, rows.remove(idx));
+                matchingNames.add(0, rowNames.remove(idx));
+                scrollContent.removeChild(matchingRows.get(0));
+                if (idx < selectedIndex) selectedIndex--;
+            }
+
+            // Insert matching rows right after selected
+            int insertAt = selectedIndex + 1;
+            for (int i = 0; i < matchingRows.size(); i++) {
+                rows.add(insertAt + i, matchingRows.get(i));
+                rowNames.add(insertAt + i, matchingNames.get(i));
+                scrollContent.child(insertAt + i, matchingRows.get(i));
+            }
+
+            Effects.select(rows, selectedIndex);
+
+            // Save new order to file
+            Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
+            FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
 }

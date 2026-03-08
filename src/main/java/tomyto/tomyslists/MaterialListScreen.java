@@ -91,11 +91,7 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
 
         row.child(
                 Components.button(Component.literal("Select"), button -> {
-                    try {
-                        Files.writeString(schematicFolder.resolve(configFile), text);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    saveSelectedFile(text);
                     Minecraft.getInstance().setScreen(new ListMainScreen());
                 }).sizing(Sizing.fixed(50), Sizing.fixed(20))
         );
@@ -131,6 +127,28 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
                         addItem(displayName);
                     });
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveSelectedFile(String fileName) {
+        Path configPath = schematicFolder.resolve(configFile);
+        try {
+            List<String> existingLines = new ArrayList<>();
+            if (Files.exists(configPath)) {
+                existingLines = Files.readAllLines(configPath);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(fileName).append("\n");
+
+            // Preserve lines 2+ (groupings)
+            for (int i = 1; i < existingLines.size(); i++) {
+                sb.append(existingLines.get(i)).append("\n");
+            }
+
+            Files.write(configPath, sb.toString().getBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -46,7 +46,6 @@ public class CheckOffItems {
             }
             Files.writeString(filePath, sb.toString());;
 
-            System.out.println(sb.toString());
 
         } catch (IOException e) {
             e.printStackTrace();
