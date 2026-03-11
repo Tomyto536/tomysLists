@@ -9,10 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Flow;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.mojang.authlib.yggdrasil.response.MinecraftTexturesPayload;
+import io.wispforest.owo.ui.core.Color;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import io.wispforest.owo.ui.component.Components;
@@ -45,6 +50,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     private io.wispforest.owo.ui.container.ScrollContainer<?> scrollContainer;
     public final List<String> rowNames = new ArrayList<>();
     private boolean skipInitScroll = false;
+    private List<List<String>> undoStack = new ArrayList<>();
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -74,52 +80,12 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         if (checkoffKey.matches(input)) {
-            if (selectedIndex >= 0 && selectedIndex < rows.size()) {
-                // Get the name from the selected row's label
-                String name = rowNames.get(selectedIndex);
-
-                // Remove from display
-                scrollContent.removeChild(rows.get(selectedIndex));
-                rows.remove(selectedIndex);
-                rowNames.remove(selectedIndex);
-
-                // Clamp selected index
-                selectedIndex = Math.min(selectedIndex, rows.size() - 1);
-                if (selectedIndex >= 0) {
-                    Effects.select(rows, selectedIndex);
-                }
-
-                // Save to file
-                try {
-                    String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
-                    Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
-                    CheckOffItems.checkOff(materialFile, name);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            checkOffItem();
             return true;
         }
 
         if (bringBackKey.matches(input)) {
-            try {
-                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
-                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
-                CheckOffItems.bringBack(materialFile);
-
-                // Clear and reload
-                rows.clear();
-                rowNames.clear();
-                scrollContent.clearChildren();
-                loadMaterialList();
-
-                selectedIndex = 0;
-                Effects.select(rows, selectedIndex);
-                scrollContainer.scrollTo(rows.get(selectedIndex));
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            bringBackLastItem();
             return true;
         }
 
@@ -140,35 +106,68 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         //Top bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(10))
-                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem()))
+                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
+
+
+                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.fill(10), Sizing.fill(80))
+                        )
+
+                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.fill(12), Sizing.fill(80))
+                        )
+
+
+                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.fill(10), Sizing.fill(80))
+                        )
+
+
+                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(Components.button(Component.literal("↩"), btn -> bringBackLastItem())
+                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
+                                        .margins(Insets.both(3, 5))
+                                )
+                                .horizontalAlignment(HorizontalAlignment.RIGHT)
+                                .verticalAlignment(VerticalAlignment.CENTER)
+                                .margins(Insets.right(15))
+                        )
+
+                        .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
-        );
+
+                );
+
 
         //Scroll content
         scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
 
-        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(77), scrollContent);
+        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(79), scrollContent);
         rootComponent.child(
                 scrollContainer
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
         );
 
-        //Button bar
+        //Bottom bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
+                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
                         .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new MaterialListScreen());})
                                 .margins(Insets.both(10,5))
-                                .sizing(Sizing.content(), Sizing.fill(100))
+                                .sizing(Sizing.content(), Sizing.fill(80))
                         )
                         .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
                                 .margins(Insets.both(10, 5))
-                                .sizing(Sizing.content(), Sizing.fill(100))
+                                .sizing(Sizing.fill(10), Sizing.fill(80))
                         )
+                        .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
+
 
         );
 
@@ -244,6 +243,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Skip the line if item is checked off
         if (name.startsWith(CheckOffItems.CHECKEDOFF_MARKER)) return;
 
+
+
+
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
 
@@ -253,6 +255,10 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         );
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
         ItemStack stack = new ItemStack(item);
+
+        //Decide color of text
+        int playerCount = Minecraft.getInstance().player.getInventory().countItem(item);
+        int textColor = playerCount >= total ? 0x55FF55 : 0xFFFFFF;
 
         // Item icon
         row.child(
@@ -264,16 +270,27 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         // Item name
         row.child(
                 Components.label(Component.literal(name))
-                        .sizing(Sizing.fill(40), Sizing.content())
+                        .sizing(Sizing.fill(20), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
         // Total count
         row.child(
                 Components.label(Component.literal(FileUtils.formatAmount(total)))
-                        .horizontalTextAlignment(HorizontalAlignment.RIGHT)
-                        .sizing(Sizing.fill(45), Sizing.content())
+                        .horizontalTextAlignment(HorizontalAlignment.LEFT)
+                        .color(Color.ofRgb(textColor))
+                        .sizing(Sizing.fill(65), Sizing.content())
                         .margins(Insets.both(5, 4))
+        );
+
+        row.child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                .child(Components.button(Component.literal("✓"), btn -> checkOffItem())
+                        .sizing(Sizing.fixed(20), Sizing.fill(80))
+                        .margins(Insets.both(3, 5))
+                )
+                .horizontalAlignment(HorizontalAlignment.RIGHT)
+                .verticalAlignment(VerticalAlignment.CENTER)
+                .margins(Insets.right(10))
         );
 
         row.surface(Surface.DARK_PANEL)
@@ -318,6 +335,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
     private void groupSelectedItem() {
         if (selectedIndex < 0 || selectedIndex >= rowNames.size()) return;
+
+        undoStack.add(new ArrayList<>(rowNames));
 
         String selectedName = rowNames.get(selectedIndex);
         try {
@@ -371,6 +390,145 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
+    private void undoGrouping() {
+        if (undoStack.isEmpty()) return;
+
+        List<String> previousOrder = undoStack.remove(undoStack.size() - 1);
+
+        // Reorder rows and rowNames to match previous order
+        List<FlowLayout> newRows = new ArrayList<>();
+        List<String> newRowNames = new ArrayList<>();
+
+        for (String name : previousOrder) {
+            int idx = rowNames.indexOf(name);
+            if (idx >= 0) {
+                newRows.add(rows.get(idx));
+                newRowNames.add(rowNames.get(idx));
+            }
+        }
+
+        // Update scroll content order
+        scrollContent.clearChildren();
+        rows.clear();
+        rowNames.clear();
+
+        for (int i = 0; i < newRows.size(); i++) {
+            rows.add(newRows.get(i));
+            rowNames.add(newRowNames.get(i));
+            scrollContent.child(newRows.get(i));
+        }
+
+        Effects.select(rows, selectedIndex);
+
+        // Save to file
+        try {
+            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+            Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
+            FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void autoGroup() {
+        String selectedName = selectedIndex >= 0 ? rowNames.get(selectedIndex) : null;
+        Set<String> alreadyGrouped = new HashSet<>();
+
+        for (int i = 0; i < rowNames.size(); i++) {
+            String name = rowNames.get(i);
+            if (alreadyGrouped.contains(name)) continue;
+
+            Map<String, List<String>> groupings = GroupingUtils.loadGroupings(schematicFolder.resolve(configFile));
+            Map.Entry<String, List<String>> matchedGrouping = GroupingUtils.findGroupingForItem(name, groupings);
+            if (matchedGrouping == null) continue;
+
+            if (alreadyGrouped.isEmpty()) undoStack.add(new ArrayList<>(rowNames));
+
+            selectedIndex = i;
+            groupSelectedItem();
+
+            for (String rowName : rowNames) {
+                boolean matches = rowName.toLowerCase().contains(matchedGrouping.getKey().toLowerCase());
+                boolean isIgnored = matchedGrouping.getValue().stream()
+                        .anyMatch(term -> rowName.toLowerCase().contains(term.toLowerCase()));
+                if (matches && !isIgnored) alreadyGrouped.add(rowName);
+            }
+
+            i = rowNames.indexOf(name);
+        }
+
+        // Restore selected row by name
+        if (selectedName != null) {
+            int restoredIndex = rowNames.indexOf(selectedName);
+            if (restoredIndex >= 0) {
+                selectedIndex = restoredIndex;
+                Effects.select(rows, selectedIndex);
+            }
+        }
+
+        try {
+            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+            Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
+            FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void bringBackLastItem() {
+        try {
+            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+            CheckOffItems.bringBack(materialFile);
+
+            // Clear and reload
+            rows.clear();
+            rowNames.clear();
+            scrollContent.clearChildren();
+            loadMaterialList();
+
+            selectedIndex = 0;
+            Effects.select(rows, selectedIndex);
+            scrollContainer.scrollTo(rows.get(selectedIndex));
+
+            Minecraft.getInstance().player.playSound(SoundEvents.STONE_BREAK);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void checkOffItem() {
+
+        if (selectedIndex >= 0 && selectedIndex < rows.size()) {
+            // Get the name from the selected row's label
+            String name = rowNames.get(selectedIndex);
+
+            // Remove from display
+            scrollContent.removeChild(rows.get(selectedIndex));
+            rows.remove(selectedIndex);
+            rowNames.remove(selectedIndex);
+
+            // Clamp selected index
+            selectedIndex = Math.min(selectedIndex, rows.size() - 1);
+            if (selectedIndex >= 0) {
+                Effects.select(rows, selectedIndex);
+            }
+
+            Minecraft.getInstance().player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP);
+
+            // Save to file
+            try {
+                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                CheckOffItems.checkOff(materialFile, name);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 
 }
