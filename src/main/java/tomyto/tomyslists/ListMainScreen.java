@@ -51,6 +51,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public final List<String> rowNames = new ArrayList<>();
     private boolean skipInitScroll = false;
     private List<List<String>> undoStack = new ArrayList<>();
+    private boolean isAutoGrouping = false;
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
@@ -112,17 +113,20 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Bring items with similar names near the selected item"))
                         )
 
                         .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(12), Sizing.fill(80))
+                                .tooltip(Component.literal("Groups all the items in the material list"))
                         )
 
 
                         .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Undo the last grouping"))
                         )
 
 
@@ -130,6 +134,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                                 .child(Components.button(Component.literal("↩"), btn -> bringBackLastItem())
                                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                                         .margins(Insets.both(3, 5))
+                                        .tooltip(Component.literal("Bring back last checked off item"))
                                 )
                                 .horizontalAlignment(HorizontalAlignment.RIGHT)
                                 .verticalAlignment(VerticalAlignment.CENTER)
@@ -163,7 +168,21 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
                                 .margins(Insets.both(10, 5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Manage groupings"))
                         )
+
+                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(Components.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
+                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
+                                        .margins(Insets.both(3, 5))
+                                        .tooltip(Component.literal("Open tutorial"))
+                                )
+                                .horizontalAlignment(HorizontalAlignment.RIGHT)
+                                .verticalAlignment(VerticalAlignment.CENTER)
+                                .margins(Insets.right(15))
+                        )
+
+
                         .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
@@ -179,7 +198,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public void init() {
         super.init();
 
-        System.out.println("IM CALLED " + skipInitScroll);
+        if (isFirstTime(schematicFolder)) {
+            Minecraft.getInstance().setScreen(new TutorialScreen());
+        }
 
         if (skipInitScroll) {
             skipInitScroll = false;
@@ -336,7 +357,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     private void groupSelectedItem() {
         if (selectedIndex < 0 || selectedIndex >= rowNames.size()) return;
 
-        undoStack.add(new ArrayList<>(rowNames));
+        if (!isAutoGrouping) undoStack.add(new ArrayList<>(rowNames));
 
         String selectedName = rowNames.get(selectedIndex);
         try {
@@ -433,6 +454,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
     private void autoGroup() {
         String selectedName = selectedIndex >= 0 ? rowNames.get(selectedIndex) : null;
+        isAutoGrouping = true;
+        undoStack.add(new ArrayList<>(rowNames));
         Set<String> alreadyGrouped = new HashSet<>();
 
         for (int i = 0; i < rowNames.size(); i++) {
@@ -457,6 +480,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
             i = rowNames.indexOf(name);
         }
+
+        isAutoGrouping = false;
 
         // Restore selected row by name
         if (selectedName != null) {
@@ -527,6 +552,17 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public static boolean isFirstTime(Path configFolder) {
+        Path configFile = configFolder.resolve("tomyslistconfig.txt");
+        try {
+            if (!Files.exists(configFile)) return true;
+            String firstLine = Files.readAllLines(configFile).get(0).trim();
+            return firstLine.isEmpty();
+        } catch (IOException | IndexOutOfBoundsException e) {
+            return true;
         }
     }
 

@@ -99,10 +99,24 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
         // Bottom bar - text input and buttons
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
+
+                        .child(Components.label(Component.literal("Group : "))
+                                .verticalTextAlignment(VerticalAlignment.CENTER)
+                                .sizing(Sizing.content(), Sizing.expand())
+                                .margins(Insets.both(10,5))
+                        )
+
                         .child(
-                                textBox = (TextBoxComponent) Components.textBox(Sizing.fill(40))
+                                textBox = (TextBoxComponent) Components.textBox(Sizing.fill(30))
                                         .margins(Insets.both(10, 5))
                         )
+
+                        .child(Components.label(Component.literal("Exclude : "))
+                                .verticalTextAlignment(VerticalAlignment.CENTER)
+                                .sizing(Sizing.content(), Sizing.expand())
+                                .margins(Insets.both(10,5))
+                        )
+
                         .child(
                                 ignoreBox = (TextBoxComponent) Components.textBox(Sizing.fill(30))
                                         .margins(Insets.both(5, 5))
