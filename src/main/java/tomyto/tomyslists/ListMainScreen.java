@@ -198,9 +198,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public void init() {
         super.init();
 
-        if (isFirstTime(schematicFolder)) {
-            Minecraft.getInstance().setScreen(new TutorialScreen());
-        }
+//        if (isFirstTime(schematicFolder)) {
+//            Minecraft.getInstance().setScreen(new TutorialScreen());
+//        }
 
         if (skipInitScroll) {
             skipInitScroll = false;
