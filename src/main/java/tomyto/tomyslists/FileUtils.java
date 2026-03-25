@@ -223,7 +223,8 @@ public class FileUtils {
                     "copper|",
 
                     //Misc
-                    "lantern"
+                    "lantern",
+                    "candle"
 
             );
 
