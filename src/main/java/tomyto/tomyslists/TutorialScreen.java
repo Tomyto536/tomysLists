@@ -56,7 +56,7 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 
                         .child(
                                 Components.button(Component.literal("Got it!"), btn -> {
-                                            markTutorialSeen();
+                                            //markTutorialSeen();
                                             Minecraft.getInstance().setScreen(new ListMainScreen());
                                         })
                                         .margins(Insets.top(10))
@@ -66,18 +66,18 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
         );
     }
 
-    private void markTutorialSeen() {
-        Path configFile = Minecraft.getInstance().gameDirectory.toPath()
-                .resolve("config").resolve("litematica")
-                .resolve("tomyslistconfig.txt");
-        try {
-            if (!Files.exists(configFile)) return;
-            List<String> lines = new ArrayList<>(Files.readAllLines(configFile));
-            if (lines.isEmpty() || !lines.get(0).trim().isEmpty()) return; // only write if first line is empty
-            lines.set(0, "seen");
-            Files.write(configFile, lines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    private void markTutorialSeen() {
+//        Path configFile = Minecraft.getInstance().gameDirectory.toPath()
+//                .resolve("config").resolve("litematica")
+//                .resolve("tomyslistconfig.txt");
+//        try {
+//            if (!Files.exists(configFile)) return;
+//            List<String> lines = new ArrayList<>(Files.readAllLines(configFile));
+//            if (lines.isEmpty() || !lines.get(0).trim().isEmpty()) return; // only write if first line is empty
+//            lines.set(0, "seen");
+//            Files.write(configFile, lines);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

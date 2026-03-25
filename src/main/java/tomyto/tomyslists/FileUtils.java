@@ -1,8 +1,11 @@
 package tomyto.tomyslists;
 
+import net.minecraft.client.Minecraft;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,12 @@ public class FileUtils {
     public static final String CHECKEDOFF_MARKER = "@";
 
     public static Map<String, Integer> loadMaterialList(Path filePath) {
+
+        Path configFile = Minecraft.getInstance().gameDirectory.toPath()
+                .resolve("config").resolve("litematica")
+                .resolve("tomyslistconfig.txt");
+        FileUtils.writeDefaultGroupings(configFile);
+
         Map<String, Integer> materials = new LinkedHashMap<>();
 
         try {
@@ -144,6 +153,32 @@ public class FileUtils {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public static void writeDefaultGroupings(Path configFile) {
+        try {
+            if (!Files.exists(configFile)) return;
+            List<String> lines = new ArrayList<>(Files.readAllLines(configFile));
+
+            // Only write defaults if there are no groupings yet (only line 1 or empty)
+            if (lines.size() > 1) return;
+
+            List<String> defaults = List.of(
+                    "oak|leave,sapling,log,wood,plank,slab,stair,fence,door,trapdoor,sign,button,pressure",
+                    "stone|cobblestone,andesite,diorite,granite,brick,slab,stair",
+                    "concrete|powder",
+                    "terracotta|glazed",
+                    "wool|carpet",
+                    "sand|sandstone,slab,stair",
+                    "glass|pane"
+                    // add or remove whatever makes sense
+            );
+
+            lines.addAll(defaults);
+            Files.write(configFile, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
