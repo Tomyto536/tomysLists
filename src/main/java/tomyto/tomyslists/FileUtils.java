@@ -165,25 +165,25 @@ public class FileUtils {
 
             List<String> defaults = List.of(
                     // Wood types
-                    "oak|leave,sapling, pale",
+                    "oak|leave,sapling, pale, dark",
                     "spruce|leave,sapling",
                     "birch|leave,sapling",
                     "jungle|leave,sapling",
                     "acacia|leave,sapling",
-                    "dark_oak|leave,sapling",
-                    "mangrove|leave,sapling",
+                    "dark oak|leave,sapling",
+                    "mangrove|leave,propagule",
                     "cherry|leave,sapling",
                     "bamboo|leave,sapling",
-                    "crimson|leave,sapling",
-                    "warped|leave,sapling",
-                    "pale_oak|leave,sapling",
+                    "crimson|fungus, nylium, roots",
+                    "warped|fungus, roots, nylium",
+                    "pale|leave,sapling",
 
                     // Leaves and saplings
                     "leave|",
                     "sapling|",
 
                     // Stone variants
-                    "stone|",
+                    "stone|redstone, sand, glowstone, end, black, cutter, lode, dripstone, cobble",
                     "cobblestone|",
                     "andesite|",
                     "diorite|",
@@ -191,18 +191,19 @@ public class FileUtils {
                     "deepslate|",
                     "blackstone|",
                     "basalt|",
-                    "calcite|",
                     "tuff|",
                     "dripstone|",
                     "mud",
                     "prismarine",
+                    "resin",
+                    "quartz",
 
                     // Bricks
-                    "brick|stone,deepslate,mud,nether",
-                    "nether_brick|",
+                    "brick|stone, deepslate, mud, nether, tuff, prismarine, resin, quartz",
+                    "nether brick|",
 
                     // Sandstone
-                    "sand|soul",
+                    "sand|soul, stone",
                     "sandstone|",
 
                     // Concrete
