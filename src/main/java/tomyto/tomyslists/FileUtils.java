@@ -164,13 +164,66 @@ public class FileUtils {
             if (lines.size() > 1) return;
 
             List<String> defaults = List.of(
-                    "oak|leave,sapling,log,wood,plank,slab,stair,fence,door,trapdoor,sign,button,pressure",
-                    "stone|cobblestone,andesite,diorite,granite,brick,slab,stair",
-                    "concrete|powder",
-                    "terracotta|glazed",
-                    "wool|carpet",
-                    "sand|sandstone,slab,stair",
-                    "glass|pane"
+                    // Wood types
+                    "oak|leave,sapling, pale",
+                    "spruce|leave,sapling",
+                    "birch|leave,sapling",
+                    "jungle|leave,sapling",
+                    "acacia|leave,sapling",
+                    "dark_oak|leave,sapling",
+                    "mangrove|leave,sapling",
+                    "cherry|leave,sapling",
+                    "bamboo|leave,sapling",
+                    "crimson|leave,sapling",
+                    "warped|leave,sapling",
+                    "pale_oak|leave,sapling",
+
+                    // Leaves and saplings
+                    "leave|",
+                    "sapling|",
+
+                    // Stone variants
+                    "stone|",
+                    "cobblestone|",
+                    "andesite|",
+                    "diorite|",
+                    "granite|",
+                    "deepslate|",
+                    "blackstone|",
+                    "basalt|",
+                    "calcite|",
+                    "tuff|",
+                    "dripstone|",
+                    "mud",
+                    "prismarine",
+
+                    // Bricks
+                    "brick|stone,deepslate,mud,nether",
+                    "nether_brick|",
+
+                    // Sandstone
+                    "sand|soul",
+                    "sandstone|",
+
+                    // Concrete
+                    "concrete|",
+
+                    // Terracotta
+                    "terracotta|",
+
+                    // Glass
+                    "glass|",
+
+                    // Wool and carpet
+                    "wool|",
+                    "carpet|moss",
+
+                    // Copper
+                    "copper|",
+
+                    //Misc
+                    "lantern"
+
             );
 
             lines.addAll(defaults);
