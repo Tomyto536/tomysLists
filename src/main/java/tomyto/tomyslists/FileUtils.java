@@ -1,8 +1,11 @@
 package tomyto.tomyslists;
 
+import net.minecraft.client.Minecraft;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,12 @@ public class FileUtils {
     public static final String CHECKEDOFF_MARKER = "@";
 
     public static Map<String, Integer> loadMaterialList(Path filePath) {
+
+        Path configFile = Minecraft.getInstance().gameDirectory.toPath()
+                .resolve("config").resolve("litematica")
+                .resolve("tomyslistconfig.txt");
+        FileUtils.writeDefaultGroupings(configFile);
+
         Map<String, Integer> materials = new LinkedHashMap<>();
 
         try {
@@ -144,6 +153,86 @@ public class FileUtils {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public static void writeDefaultGroupings(Path configFile) {
+        try {
+            if (!Files.exists(configFile)) return;
+            List<String> lines = new ArrayList<>(Files.readAllLines(configFile));
+
+            // Only write defaults if there are no groupings yet (only line 1 or empty)
+            if (lines.size() > 1) return;
+
+            List<String> defaults = List.of(
+                    // Wood types
+                    "oak|leave,sapling, pale, dark",
+                    "spruce|leave,sapling",
+                    "birch|leave,sapling",
+                    "jungle|leave,sapling",
+                    "acacia|leave,sapling",
+                    "dark oak|leave,sapling",
+                    "mangrove|leave,propagule",
+                    "cherry|leave,sapling",
+                    "bamboo|leave,sapling",
+                    "crimson|fungus, nylium, roots",
+                    "warped|fungus, roots, nylium",
+                    "pale|leave,sapling",
+
+                    // Leaves and saplings
+                    "leave|",
+                    "sapling|",
+
+                    // Stone variants
+                    "stone|redstone, sand, glowstone, end, black, cutter, lode, dripstone, cobble",
+                    "cobblestone|",
+                    "andesite|",
+                    "diorite|",
+                    "granite|",
+                    "deepslate|",
+                    "blackstone|",
+                    "basalt|",
+                    "tuff|",
+                    "dripstone|",
+                    "mud",
+                    "prismarine",
+                    "resin",
+                    "quartz",
+
+                    // Bricks
+                    "brick|stone, deepslate, mud, nether, tuff, prismarine, resin, quartz",
+                    "nether brick|",
+
+                    // Sandstone
+                    "sand|soul, stone",
+                    "sandstone|",
+
+                    // Concrete
+                    "concrete|",
+
+                    // Terracotta
+                    "terracotta|",
+
+                    // Glass
+                    "glass|",
+
+                    // Wool and carpet
+                    "wool|",
+                    "carpet|moss",
+
+                    // Copper
+                    "copper|",
+
+                    //Misc
+                    "lantern",
+                    "candle"
+
+            );
+
+            lines.addAll(defaults);
+            Files.write(configFile, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
