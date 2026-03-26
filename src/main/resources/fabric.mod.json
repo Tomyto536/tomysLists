@@ -29,10 +29,10 @@
 		"tomys-lists.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.17.2",
-		"minecraft": "~1.21.10",
-		"java": ">=21",
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~26.1",
+		"java": ">=25",
 		"fabric-api": "*",
-		"owo": ">=0.12.24"
+		"owo": ">=0.13.0+26.1"
 	}
 }

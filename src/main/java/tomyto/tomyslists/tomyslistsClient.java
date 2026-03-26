@@ -3,7 +3,7 @@ package tomyto.tomyslists;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
@@ -24,14 +24,14 @@ public class tomyslistsClient implements ClientModInitializer {
     public void onInitializeClient() {
 
 
-        openListMainScreenKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        openListMainScreenKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Open material list screen", // Translation key
                 InputConstants.Type.KEYSYM,    // Type: Keyboard
                 GLFW.GLFW_KEY_R,              // Default key: R
                 TomyListsCategory   // Category
         ));
 
-        scrollUpKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        scrollUpKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Scroll up the material list",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_W,
@@ -39,7 +39,7 @@ public class tomyslistsClient implements ClientModInitializer {
 
         ));
 
-        scrollDownKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        scrollDownKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Scroll down the material list",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_S,
@@ -47,7 +47,7 @@ public class tomyslistsClient implements ClientModInitializer {
 
         ));
 
-        bringBackKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        bringBackKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Check item off the material list",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_D,
@@ -55,7 +55,7 @@ public class tomyslistsClient implements ClientModInitializer {
 
         ));
 
-        checkoffKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        checkoffKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Bring back checked off item",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_A,
