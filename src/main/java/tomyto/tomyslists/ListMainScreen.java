@@ -198,9 +198,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     public void init() {
         super.init();
 
-        if (isFirstTime(schematicFolder)) {
-            Minecraft.getInstance().setScreen(new TutorialScreen());
-        }
+//        if (isFirstTime(schematicFolder)) {
+//            Minecraft.getInstance().setScreen(new TutorialScreen());
+//        }
 
         if (skipInitScroll) {
             skipInitScroll = false;
@@ -555,16 +555,16 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    public static boolean isFirstTime(Path configFolder) {
-        Path configFile = configFolder.resolve("tomyslistconfig.txt");
-        try {
-            if (!Files.exists(configFile)) return true;
-            String firstLine = Files.readAllLines(configFile).get(0).trim();
-            return firstLine.isEmpty();
-        } catch (IOException | IndexOutOfBoundsException e) {
-            return true;
-        }
-    }
+//    public static boolean isFirstTime(Path configFolder) {
+//        Path configFile = configFolder.resolve("tomyslistconfig.txt");
+//        try {
+//            if (!Files.exists(configFile)) return true;
+//            String firstLine = Files.readAllLines(configFile).get(0).trim();
+//            return firstLine.isEmpty();
+//        } catch (IOException | IndexOutOfBoundsException e) {
+//            return true;
+//        }
+//    }
 
 
 }
