@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 
@@ -56,8 +57,8 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 
                         .child(
                                 Components.button(Component.literal("Got it!"), btn -> {
-                                            //markTutorialSeen();
-                                            Minecraft.getInstance().setScreen(new ListMainScreen());
+                                            //Minecraft.getInstance().setScreen(null);
+                                            onClose();
                                         })
                                         .margins(Insets.top(10))
                         )
@@ -80,4 +81,11 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 //            e.printStackTrace();
 //        }
 //    }
+
+    @Override
+    public void onClose() {
+        super.onClose();
+        Minecraft.getInstance().setScreen(new ListMainScreen());
+    }
+
 }
