@@ -56,8 +56,7 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 
                         .child(
                                 UIComponents.button(Component.literal("Got it!"), btn -> {
-                                            markTutorialSeen();
-                                            Minecraft.getInstance().setScreen(new ListMainScreen());
+                                            onClose();
                                         })
                                         .margins(Insets.top(10))
                         )
@@ -79,5 +78,11 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onClose() {
+        super.onClose();
+        Minecraft.getInstance().setScreen(new ListMainScreen());
     }
 }
