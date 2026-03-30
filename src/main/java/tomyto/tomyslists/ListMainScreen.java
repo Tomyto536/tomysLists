@@ -15,18 +15,18 @@ import java.util.Set;
 import com.mojang.authlib.yggdrasil.response.MinecraftTexturesPayload;
 import io.wispforest.owo.ui.core.Color;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.*;
 import io.wispforest.owo.ui.core.Insets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import io.wispforest.owo.ui.base.BaseUIModelScreen;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -102,7 +102,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
-        return OwoUIAdapter.create(this, Containers::verticalFlow);
+        return OwoUIAdapter.create(this, UIContainers::verticalFlow);
     }
 
     @Override
@@ -114,31 +114,31 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         //Top bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
+                UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
 
 
-                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
+                        .child(UIComponents.button(Component.literal("Group"), btn -> groupSelectedItem())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
                                 .tooltip(Component.literal("Bring items with similar names near the selected item"))
                         )
 
-                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
+                        .child(UIComponents.button(Component.literal("Auto Group"), btn -> autoGroup())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(12), Sizing.fill(80))
                                 .tooltip(Component.literal("Groups all the items in the material list"))
                         )
 
 
-                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
+                        .child(UIComponents.button(Component.literal("Undo"), btn -> undoGrouping())
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
                                 .tooltip(Component.literal("Undo the last grouping"))
                         )
 
 
-                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                                .child(Components.button(Component.literal("↩"), btn -> bringBackLastItem())
+                        .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(UIComponents.button(Component.literal("↩"), btn -> bringBackLastItem())
                                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                                         .margins(Insets.both(3, 5))
                                         .tooltip(Component.literal("Bring back last checked off item"))
@@ -156,9 +156,9 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
 
         //Scroll content
-        scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        scrollContent = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
 
-        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(79), scrollContent);
+        scrollContainer = UIContainers.verticalScroll(Sizing.fill(100), Sizing.fill(79), scrollContent);
         rootComponent.child(
                 scrollContainer
                         .surface(Surface.DARK_PANEL)
@@ -169,10 +169,12 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
                         .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
+                UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
+                        .child(UIComponents.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new MaterialListScreen());})
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.content(), Sizing.fill(80))
                         )
-                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
+                        .child(UIComponents.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
                                 .margins(Insets.both(10, 5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
                                 .tooltip(Component.literal("Manage groupings"))
@@ -189,8 +191,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                                         .margins(Insets.both(10, 5))
                         )
 
-                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                                .child(Components.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
+                        .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(UIComponents.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
                                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                                         .margins(Insets.both(3, 5))
                                         .tooltip(Component.literal("Open tutorial"))
@@ -215,6 +217,10 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void init() {
         super.init();
+
+//        if (isFirstTime(schematicFolder)) {
+//            Minecraft.getInstance().setScreen(new TutorialScreen());
+//        }
 
         if (skipInitScroll) {
             skipInitScroll = false;
@@ -281,11 +287,11 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
 
 
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        FlowLayout row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
 
         // Convert name to item stack
-        ResourceLocation itemId = ResourceLocation.tryParse(
+        Identifier itemId = Identifier.tryParse(
                 "minecraft:" + name.toLowerCase().replace(" ", "_")
         );
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
@@ -297,29 +303,29 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         // Item icon
         row.child(
-                Components.item(stack)
+                UIComponents.item(stack)
                         .sizing(Sizing.fixed(16), Sizing.fixed(16))
                         .margins(Insets.both(4, 4))
         );
 
         // Item name
         row.child(
-                Components.label(Component.literal(name))
+                UIComponents.label(Component.literal(name))
                         .sizing(Sizing.fill(20), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
         // Total count
         row.child(
-                Components.label(Component.literal(FileUtils.formatAmount(total)))
+                UIComponents.label(Component.literal(FileUtils.formatAmount(total)))
                         .horizontalTextAlignment(HorizontalAlignment.LEFT)
                         .color(Color.ofRgb(textColor))
                         .sizing(Sizing.fill(65), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
-        row.child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                .child(Components.button(Component.literal("✓"), btn -> checkOffItem())
+        row.child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                .child(UIComponents.button(Component.literal("✓"), btn -> checkOffItem())
                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                         .margins(Insets.both(3, 5))
                 )
@@ -352,7 +358,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         int viewportHeight = scrollContainer.height();
         int contentHeight = scrollContent.height();
 
-        io.wispforest.owo.ui.core.Component row = rows.get(index);
+        io.wispforest.owo.ui.core.UIComponent row = rows.get(index);
         int rowTop = row.y();
         int rowBottom = rowTop + row.height();
 

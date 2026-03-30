@@ -252,6 +252,7 @@ public class FileUtils {
                     //Misc
                     "lantern",
                     "candle"
+
             );
 
             lines.addAll(defaults);

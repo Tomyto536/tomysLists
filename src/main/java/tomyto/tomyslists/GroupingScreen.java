@@ -1,7 +1,7 @@
 package tomyto.tomyslists;
 
 import io.wispforest.owo.ui.base.BaseOwoScreen;
-import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.Containers;
@@ -36,7 +36,7 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
-        return OwoUIAdapter.create(this, Containers::verticalFlow);
+        return OwoUIAdapter.create(this, UIContainers::verticalFlow);
     }
 
     @Override
@@ -48,8 +48,8 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
 
         // Top bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24))
-                        .child(Components.label(Component.literal("Groupings"))
+                UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24))
+                        .child(UIComponents.label(Component.literal("Groupings"))
                                 .sizing(Sizing.fill(100), Sizing.content())
                                 .margins(Insets.both(10, 6)))
                         .surface(Surface.DARK_PANEL)
@@ -57,34 +57,34 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
         );
 
         // Main content area - groupings on left, preview on right
-        FlowLayout mainArea = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(77));
+        FlowLayout mainArea = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fill(77));
 
         // Left side - existing groupings
-        FlowLayout leftPanel = Containers.verticalFlow(Sizing.fill(50), Sizing.fill(100));
+        FlowLayout leftPanel = UIContainers.verticalFlow(Sizing.fill(50), Sizing.fill(100));
 
         leftPanel.child(
-                Components.label(Component.literal("Groupings"))
+                UIComponents.label(Component.literal("Groupings"))
                         .margins(Insets.both(5, 4))
         );
 
-        groupingsList = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        groupingsList = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         leftPanel.child(
-                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(85), groupingsList)
+                UIContainers.verticalScroll(Sizing.fill(100), Sizing.fill(85), groupingsList)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(5, 2))
         );
 
         // Right side - preview of matching items
-        FlowLayout rightPanel = Containers.verticalFlow(Sizing.fill(50), Sizing.fill(100));
+        FlowLayout rightPanel = UIContainers.verticalFlow(Sizing.fill(50), Sizing.fill(100));
 
         rightPanel.child(
-                Components.label(Component.literal("Preview"))
+                UIComponents.label(Component.literal("Preview"))
                         .margins(Insets.both(5, 4))
         );
 
-        previewList = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        previewList = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         rightPanel.child(
-                Containers.verticalScroll(Sizing.fill(100), Sizing.fill(85), previewList)
+                UIContainers.verticalScroll(Sizing.fill(100), Sizing.fill(85), previewList)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(5, 2))
         );
@@ -99,38 +99,38 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
 
         // Bottom bar - text input and buttons
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
+                UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fill(8))
 
-                        .child(Components.label(Component.literal("Group : "))
+                        .child(UIComponents.label(Component.literal("Group : "))
                                 .verticalTextAlignment(VerticalAlignment.CENTER)
                                 .sizing(Sizing.content(), Sizing.expand())
                                 .margins(Insets.both(10,5))
                         )
 
                         .child(
-                                textBox = (TextBoxComponent) Components.textBox(Sizing.fill(30))
+                                textBox = (TextBoxComponent) UIComponents.textBox(Sizing.fill(30))
                                         .margins(Insets.both(10, 5))
                         )
 
-                        .child(Components.label(Component.literal("Exclude : "))
+                        .child(UIComponents.label(Component.literal("Exclude : "))
                                 .verticalTextAlignment(VerticalAlignment.CENTER)
                                 .sizing(Sizing.content(), Sizing.expand())
                                 .margins(Insets.both(10,5))
                         )
 
                         .child(
-                                ignoreBox = (TextBoxComponent) Components.textBox(Sizing.fill(30))
+                                ignoreBox = (TextBoxComponent) UIComponents.textBox(Sizing.fill(30))
                                         .margins(Insets.both(5, 5))
                         )
                         .child(
-                                Components.button(Component.literal("Add"), btn -> {
+                                UIComponents.button(Component.literal("Add"), btn -> {
                                             addGrouping(textBox.getValue());
                                         })
                                         .margins(Insets.both(5, 5))
                                         .sizing(Sizing.fixed(40), Sizing.fill(80))
                         )
                         .child(
-                                Components.button(Component.literal("Back"), btn -> {
+                                UIComponents.button(Component.literal("Back"), btn -> {
                                             Minecraft.getInstance().setScreen(new ListMainScreen());
                                         })
                                         .margins(Insets.both(5, 5))
@@ -179,20 +179,20 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addGroupingRow(String grouping, List<String> ignored) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        FlowLayout row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
 
         String displayText = ignored.isEmpty() ? grouping : grouping + " (excl: " + String.join(", ", ignored) + ")";
 
         row.child(
-                Components.label(Component.literal(displayText))
+                UIComponents.label(Component.literal(displayText))
                         .sizing(Sizing.fill(60), Sizing.content())
                         .margins(Insets.both(5, 4))
         );
 
         // Edit button
         row.child(
-                Components.button(Component.literal("Edit"), btn -> {
+                UIComponents.button(Component.literal("Edit"), btn -> {
                             textBox.setValue(grouping);
                             ignoreBox.setValue(String.join(", ", ignored));
                             deleteGrouping(grouping);
@@ -203,7 +203,7 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
 
         // Delete button
         row.child(
-                Components.button(Component.literal("X"), btn -> deleteGrouping(grouping))
+                UIComponents.button(Component.literal("X"), btn -> deleteGrouping(grouping))
                         .sizing(Sizing.fixed(20), Sizing.fixed(16))
                         .margins(Insets.both(3, 4))
         );
@@ -230,11 +230,11 @@ public class GroupingScreen extends BaseOwoScreen<FlowLayout> {
                         .anyMatch(term -> itemName.toLowerCase().contains(term.toLowerCase()));
                 if (!isIgnored) {
                     previewList.child(
-                            Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24))
-                                    .child(Components.item(new ItemStack(item))
+                            UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24))
+                                    .child(UIComponents.item(new ItemStack(item))
                                             .sizing(Sizing.fixed(16), Sizing.fixed(16))
                                             .margins(Insets.both(4, 4)))
-                                    .child(Components.label(Component.literal(itemName))
+                                    .child(UIComponents.label(Component.literal(itemName))
                                             .sizing(Sizing.fill(80), Sizing.content())
                                             .margins(Insets.both(5, 4)))
                                     .surface(Surface.DARK_PANEL)
