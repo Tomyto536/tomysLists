@@ -35,6 +35,13 @@ import org.jetbrains.annotations.NotNull;
 import net.minecraft.network.chat.Component;
 import tomyto.tomyslists.tomyslistsClient;
 
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.nbt.ListTag;
+import java.util.stream.Collectors;
+
 import static tomyto.tomyslists.tomyslistsClient.openListMainScreenKey;
 import static tomyto.tomyslists.tomyslistsClient.scrollUpKey;
 import static tomyto.tomyslists.tomyslistsClient.scrollDownKey;
@@ -160,6 +167,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         //Bottom bar
         rootComponent.child(
+                Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
+                        .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
                 UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
                         .child(UIComponents.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new MaterialListScreen());})
                                 .margins(Insets.both(10,5))
@@ -169,6 +178,17 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                                 .margins(Insets.both(10, 5))
                                 .sizing(Sizing.fill(10), Sizing.fill(80))
                                 .tooltip(Component.literal("Manage groupings"))
+                        )
+                        .child(Components.button(Component.literal("Checked Off"), btn -> {
+                                            try {
+                                                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+                                                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                                                Minecraft.getInstance().setScreen(new CheckedOffScreen(materialFile));
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }).sizing(Sizing.content(), Sizing.fill(80))
+                                        .margins(Insets.both(10, 5))
                         )
 
                         .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
@@ -278,7 +298,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         ItemStack stack = new ItemStack(item);
 
         //Decide color of text
-        int playerCount = Minecraft.getInstance().player.getInventory().countItem(item);
+        int playerCount = FileUtils.countItemInInventory(item);
         int textColor = playerCount >= total ? 0x55FF55 : 0xFFFFFF;
 
         // Item icon
@@ -506,19 +526,24 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         try {
             String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
-            CheckOffItems.bringBack(materialFile);
+            String restoredName = CheckOffItems.bringBack(materialFile);
 
-            // Clear and reload
             rows.clear();
             rowNames.clear();
             scrollContent.clearChildren();
             loadMaterialList();
 
-            selectedIndex = 0;
-            Effects.select(rows, selectedIndex);
-            scrollContainer.scrollTo(rows.get(selectedIndex));
+            // Select the restored item
+            if (restoredName != null) {
+                int restoredIndex = rowNames.indexOf(restoredName);
+                if (restoredIndex >= 0) {
+                    selectedIndex = restoredIndex;
+                    Effects.select(rows, selectedIndex);
+                }
+            }
 
             Minecraft.getInstance().player.playSound(SoundEvents.STONE_BREAK);
+            scrollToRow(selectedIndex);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -554,17 +579,5 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
     }
-
-    public static boolean isFirstTime(Path configFolder) {
-        Path configFile = configFolder.resolve("tomyslistconfig.txt");
-        try {
-            if (!Files.exists(configFile)) return true;
-            String firstLine = Files.readAllLines(configFile).get(0).trim();
-            return firstLine.isEmpty();
-        } catch (IOException | IndexOutOfBoundsException e) {
-            return true;
-        }
-    }
-
 
 }

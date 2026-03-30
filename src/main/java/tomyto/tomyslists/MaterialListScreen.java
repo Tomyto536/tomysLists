@@ -68,6 +68,7 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.content(), Sizing.fill(100))
                         )
+
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
 
@@ -103,8 +104,6 @@ public class MaterialListScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     public void loadSchematicFiles() {
-
-
 
         if (!Files.exists(schematicFolder)) {
             return;
