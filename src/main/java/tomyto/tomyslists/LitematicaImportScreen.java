@@ -1,0 +1,188 @@
+package tomyto.tomyslists;
+
+import fi.dy.masa.litematica.schematic.LitematicaSchematic;
+import fi.dy.masa.litematica.materials.MaterialListSchematic;
+import io.wispforest.owo.ui.base.BaseOwoScreen;
+import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.core.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
+
+    private final Path schematicsFolder;
+    private final Path configFolder;
+    private String selectedFile = null;
+    private FlowLayout scrollContent;
+
+    public LitematicaImportScreen() {
+        super(Component.literal("Import from Litematica"));
+        this.schematicsFolder = Minecraft.getInstance().gameDirectory.toPath().resolve("schematics");
+        this.configFolder = Minecraft.getInstance().gameDirectory.toPath()
+                .resolve("config").resolve("litematica");
+    }
+
+    @Override
+    protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
+        return OwoUIAdapter.create(this, Containers::verticalFlow);
+    }
+
+    @Override
+    protected void build(FlowLayout rootComponent) {
+        rootComponent
+                .surface(Surface.VANILLA_TRANSLUCENT)
+                .horizontalAlignment(HorizontalAlignment.CENTER)
+                .verticalAlignment(VerticalAlignment.CENTER)
+                .padding(Insets.of(10));
+
+        rootComponent.child(
+                Components.label(Component.literal("Select a litematica file"))
+                        .horizontalTextAlignment(HorizontalAlignment.LEFT)
+                        .margins(Insets.bottom(8))
+        );
+
+        scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        loadFileList();
+
+        rootComponent.child(
+                Containers.verticalScroll(Sizing.fill(90), Sizing.fill(75), scrollContent)
+                        .surface(Surface.DARK_PANEL)
+                        .margins(Insets.bottom(8))
+        );
+
+        // Bottom bar
+        rootComponent.child(
+                Containers.horizontalFlow(Sizing.fill(90), Sizing.fixed(24))
+                        .child(
+                                Components.button(Component.literal("Back"), btn ->
+                                        Minecraft.getInstance().setScreen(new MaterialListScreen())
+                                ).sizing(Sizing.fill(20), Sizing.fixed(20))
+                        )
+                        .child(
+                                Components.button(Component.literal("Open specific txt file"), btn ->
+                                        Minecraft.getInstance().setScreen(new MaterialListScreen())
+                                ).sizing(Sizing.content(), Sizing.fixed(20))
+                        )
+
+                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(
+                                        Components.button(Component.literal("Import selected"), btn ->
+                                                importSelected()
+                                        ).sizing(Sizing.fill(30), Sizing.fixed(20))
+                                )
+                                .horizontalAlignment(HorizontalAlignment.RIGHT)
+                                .verticalAlignment(VerticalAlignment.CENTER)
+                        )
+        );
+    }
+
+    private void loadFileList() {
+        scrollContent.clearChildren();
+
+        List<Path> files = getLitematicaFiles();
+
+        if (files.isEmpty()) {
+            scrollContent.child(
+                    Components.label(Component.literal("No litematica files found"))
+                            .margins(Insets.of(10))
+            );
+            return;
+        }
+
+        for (Path file : files) {
+            String name = file.getFileName().toString().replace(".litematic", "");
+            FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+
+            row.child(
+                    Components.label(Component.literal(name))
+                            .sizing(Sizing.fill(100), Sizing.content())
+                            .margins(Insets.both(5, 4))
+            );
+
+            row.mouseDown().subscribe((x, y) -> {
+                selectedFile = name;
+                // Highlight selected row
+                for (var child : scrollContent.children()) {
+                    ((FlowLayout) child).surface(Surface.flat(0x44FFFFFF));
+                }
+                row.surface(Surface.flat(0x884499FF));
+                return true;
+            });
+
+            row.surface(Surface.flat(0x44FFFFFF));
+            row.margins(Insets.both(5,4));
+            scrollContent.child(row);
+        }
+    }
+
+    private List<Path> getLitematicaFiles() {
+        try {
+            if (!Files.exists(schematicsFolder)) return List.of();
+            return Files.list(schematicsFolder)
+                    .filter(p -> p.getFileName().toString().endsWith(".litematic"))
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    private void importSelected() {
+        if (selectedFile == null) return;
+
+        try {
+            Path litematicaFile = schematicsFolder.resolve(selectedFile + ".litematic");
+
+            LitematicaSchematic schematic = LitematicaSchematic.createFromFile(
+                    schematicsFolder, selectedFile + ".litematic"
+            );
+
+            if (schematic == null) {
+                System.out.println("Failed to load schematic: " + selectedFile);
+                return;
+            }
+
+            MaterialListSchematic materialList = new MaterialListSchematic(schematic, true);
+            materialList.reCreateMaterialList();
+
+            Path outputFile = CreateFile.writeToFile(materialList, configFolder, selectedFile);
+
+            if (outputFile != null) {
+                saveSelectedFile(outputFile.getFileName().toString());
+                Minecraft.getInstance().setScreen(new ListMainScreen());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveSelectedFile(String fileName) {
+        Path configFile = configFolder.resolve("tomyslistconfig.txt");
+        fileName = fileName.replace(".txt", "");
+        try {
+            List<String> lines;
+            if (Files.exists(configFile)) {
+                lines = new ArrayList<>(Files.readAllLines(configFile));
+                if (lines.isEmpty()) lines.add(fileName);
+                else lines.set(0, fileName);
+            } else {
+                lines = new ArrayList<>();
+                lines.add(fileName);
+            }
+            Files.write(configFile, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}

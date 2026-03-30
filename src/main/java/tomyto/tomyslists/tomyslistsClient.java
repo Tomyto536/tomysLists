@@ -48,7 +48,7 @@ public class tomyslistsClient implements ClientModInitializer {
         ));
 
         bringBackKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Check item off the material list",
+                "Bring back checked off item",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_D,
                 TomyListsCategory
@@ -56,7 +56,7 @@ public class tomyslistsClient implements ClientModInitializer {
         ));
 
         checkoffKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Bring back checked off item",
+                "Check item off the list",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_A,
                 TomyListsCategory

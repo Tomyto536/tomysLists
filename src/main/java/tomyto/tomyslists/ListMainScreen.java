@@ -161,7 +161,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Bottom bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
-                        .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new MaterialListScreen());})
+                        .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
                                 .margins(Insets.both(10,5))
                                 .sizing(Sizing.content(), Sizing.fill(80))
                         )
@@ -197,10 +197,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void init() {
         super.init();
-
-//        if (isFirstTime(schematicFolder)) {
-//            Minecraft.getInstance().setScreen(new TutorialScreen());
-//        }
 
         if (skipInitScroll) {
             skipInitScroll = false;
@@ -554,17 +550,5 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
     }
-
-//    public static boolean isFirstTime(Path configFolder) {
-//        Path configFile = configFolder.resolve("tomyslistconfig.txt");
-//        try {
-//            if (!Files.exists(configFile)) return true;
-//            String firstLine = Files.readAllLines(configFile).get(0).trim();
-//            return firstLine.isEmpty();
-//        } catch (IOException | IndexOutOfBoundsException e) {
-//            return true;
-//        }
-//    }
-
 
 }
