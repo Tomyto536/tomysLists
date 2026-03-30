@@ -1,6 +1,12 @@
 package tomyto.tomyslists;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,8 +63,11 @@ public class FileUtils {
                 String[] parts = line.split("\\|");
                 if (parts.length < 3) continue;
 
+                //1 for the 'name' column
                 String name = parts[1].trim();
-                String totalStr = parts[2].trim();
+
+                //3 for the 'missing' column
+                String totalStr = parts[3].trim();
 
                 if (name.isBlank() || totalStr.isBlank()) continue;
 
@@ -153,6 +162,24 @@ public class FileUtils {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public static int countItemInInventory(Item item) {
+        var inventory = Minecraft.getInstance().player.getInventory();
+        int count = inventory.countItem(item);
+
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack invStack = inventory.getItem(i);
+            if (invStack.getItem() instanceof BlockItem blockItem
+                    && blockItem.getBlock() instanceof ShulkerBoxBlock) {
+                count += invStack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)
+                        .stream()
+                        .filter(s -> s.getItem() == item)
+                        .mapToInt(ItemStack::getCount)
+                        .sum();
+            }
+        }
+        return count;
     }
 
     public static void writeDefaultGroupings(Path configFile) {

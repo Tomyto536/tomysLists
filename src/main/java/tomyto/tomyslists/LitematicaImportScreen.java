@@ -52,12 +52,15 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
         );
 
         scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        scrollContent.padding(Insets.both(5,5));
+
         loadFileList();
 
         rootComponent.child(
                 Containers.verticalScroll(Sizing.fill(90), Sizing.fill(75), scrollContent)
+                        .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
-                        .margins(Insets.bottom(8))
+                        .margins(Insets.both(5,5))
         );
 
         // Bottom bar
@@ -105,6 +108,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
 
             row.child(
                     Components.label(Component.literal(name))
+                            .verticalTextAlignment(VerticalAlignment.CENTER)
                             .sizing(Sizing.fill(100), Sizing.content())
                             .margins(Insets.both(5, 4))
             );
@@ -113,14 +117,14 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
                 selectedFile = name;
                 // Highlight selected row
                 for (var child : scrollContent.children()) {
-                    ((FlowLayout) child).surface(Surface.flat(0x44FFFFFF));
+                    ((FlowLayout) child).surface(Surface.DARK_PANEL);
                 }
                 row.surface(Surface.flat(0x884499FF));
                 return true;
             });
 
-            row.surface(Surface.flat(0x44FFFFFF));
-            row.margins(Insets.both(5,4));
+            row.surface(Surface.DARK_PANEL);
+            row.margins(Insets.both(5,0));
             scrollContent.child(row);
         }
     }
@@ -140,9 +144,21 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
     private void importSelected() {
         if (selectedFile == null) return;
 
-        try {
-            Path litematicaFile = schematicsFolder.resolve(selectedFile + ".litematic");
+        List<Path> existing = findExistingTxtFiles(selectedFile);
 
+        if (!existing.isEmpty()) {
+            showExistingFilesPopup(existing);
+        } else {
+            doImport();
+        }
+    }
+
+    private void showExistingFilesPopup(List<Path> existingFiles) {
+        Minecraft.getInstance().setScreen(new ExistingFilesPopupScreen(this, existingFiles, selectedFile));
+    }
+
+    public void doImport() {
+        try {
             LitematicaSchematic schematic = LitematicaSchematic.createFromFile(
                     schematicsFolder, selectedFile + ".litematic"
             );
@@ -167,7 +183,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    private void saveSelectedFile(String fileName) {
+    public void saveSelectedFile(String fileName) {
         Path configFile = configFolder.resolve("tomyslistconfig.txt");
         fileName = fileName.replace(".txt", "");
         try {
@@ -183,6 +199,19 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
             Files.write(configFile, lines);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private List<Path> findExistingTxtFiles(String baseName) {
+        try {
+            if (!Files.exists(configFolder)) return List.of();
+            return Files.list(configFolder)
+                    .filter(p -> p.getFileName().toString().endsWith(".txt"))
+                    .filter(p -> p.getFileName().toString().startsWith(baseName))
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return List.of();
         }
     }
 }

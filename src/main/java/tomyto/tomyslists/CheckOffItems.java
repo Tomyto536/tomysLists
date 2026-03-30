@@ -1,14 +1,10 @@
 package tomyto.tomyslists;
 
-import net.minecraft.server.jsonrpc.methods.ServerStateService;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CheckOffItems {
 
@@ -20,32 +16,27 @@ public class CheckOffItems {
             List<String> active = new ArrayList<>();
             List<String> checkedOff = new ArrayList<>();
 
+            int activeIndex = 0;
             for (String line : lines) {
                 if (line.isBlank()) continue;
                 if (line.startsWith(CHECKEDOFF_MARKER)) {
                     checkedOff.add(line); // already checked off, keep at bottom
                 } else if (line.replace(FileUtils.SELECTED_MARKER, "").split(",")[0].trim().equals(itemName)) {
-                    // This is the line to check off
+                    // Store the original index with the marker
                     String stripped = line.replace(FileUtils.SELECTED_MARKER, "");
-                    checkedOff.add(CHECKEDOFF_MARKER + stripped);
+                    checkedOff.add(CHECKEDOFF_MARKER + activeIndex + "," + stripped);
                 } else {
                     active.add(line);
+                    activeIndex++;
                 }
             }
 
-            System.out.println("Active: " + active);
-            System.out.println("CheckedOff: " + checkedOff);
-
-            // Write active lines first, then checked off at bottom
             List<String> result = new ArrayList<>();
             result.addAll(active);
             result.addAll(checkedOff);
             StringBuilder sb = new StringBuilder();
-            for (String line : result) {
-                sb.append(line).append("\n");
-            }
-            Files.writeString(filePath, sb.toString());;
-
+            for (String line : result) sb.append(line).append("\n");
+            Files.writeString(filePath, sb.toString());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,21 +60,96 @@ public class CheckOffItems {
 
             if (checkedOff.isEmpty()) return null;
 
-            // Get the last checked off item and strip the marker
+            // Get the first checked off item
             String lastCheckedOff = checkedOff.remove(0);
-            String restored = lastCheckedOff.substring(1); // remove the # character
+            // Format is @index,name,count — strip the marker first
+            String withoutMarker = lastCheckedOff.substring(1);
+            // Extract the original index
+            int commaPos = withoutMarker.indexOf(",");
+            int originalIndex = Integer.parseInt(withoutMarker.substring(0, commaPos));
+            // The rest is the actual line content
+            String restored = withoutMarker.substring(commaPos + 1);
 
-            // Add it to the top of active list
-            active.add(0, restored);
+            // Insert back at original index, clamped to list size
+            int insertIndex = Math.min(originalIndex, active.size());
+            active.add(insertIndex, restored);
 
             // Write back
             StringBuilder sb = new StringBuilder();
             for (String line : active) sb.append(line).append("\n");
             for (String line : checkedOff) sb.append(line).append("\n");
-            Files.write(filePath, sb.toString().getBytes());
+            Files.writeString(filePath, sb.toString());
 
-            // Return the name so we can add the row back
             return restored.replace(FileUtils.SELECTED_MARKER, "").split(",")[0].trim();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Returns list of checked off items as "name,count" strings without the marker
+    public static List<String> getCheckedOffItems(Path filePath) {
+        List<String> result = new ArrayList<>();
+        try {
+            for (String line : Files.readAllLines(filePath)) {
+                if (line.startsWith(CHECKEDOFF_MARKER)) {
+                    // Strip marker and index prefix: @index,name,count -> name,count
+                    String withoutMarker = line.substring(1);
+                    int commaPos = withoutMarker.indexOf(",");
+                    result.add(withoutMarker.substring(commaPos + 1));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // Brings back a specific item by name
+    public static String bringBackSpecific(Path filePath, String itemName) {
+        try {
+            List<String> lines = Files.readAllLines(filePath);
+            List<String> active = new ArrayList<>();
+            List<String> checkedOff = new ArrayList<>();
+
+            for (String line : lines) {
+                if (line.isBlank()) continue;
+                if (line.startsWith(CHECKEDOFF_MARKER)) {
+                    checkedOff.add(line);
+                } else {
+                    active.add(line);
+                }
+            }
+
+            String targetLine = null;
+            for (String line : checkedOff) {
+                String withoutMarker = line.substring(1);
+                int commaPos = withoutMarker.indexOf(",");
+                String name = withoutMarker.substring(commaPos + 1).split(",")[0].trim();
+                if (name.equals(itemName)) {
+                    targetLine = line;
+                    break;
+                }
+            }
+
+            if (targetLine == null) return null;
+            checkedOff.remove(targetLine);
+
+            String withoutMarker = targetLine.substring(1);
+            int commaPos = withoutMarker.indexOf(",");
+            int originalIndex = Integer.parseInt(withoutMarker.substring(0, commaPos));
+            String restored = withoutMarker.substring(commaPos + 1);
+
+            int insertIndex = Math.min(originalIndex, active.size());
+            active.add(insertIndex, restored);
+
+            StringBuilder sb = new StringBuilder();
+            for (String line : active) sb.append(line).append("\n");
+            for (String line : checkedOff) sb.append(line).append("\n");
+            Files.writeString(filePath, sb.toString());
+
+            return restored.split(",")[0].trim();
 
         } catch (IOException e) {
             e.printStackTrace();
