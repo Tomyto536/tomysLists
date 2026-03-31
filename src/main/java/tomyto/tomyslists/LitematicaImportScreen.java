@@ -103,7 +103,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         for (Path file : files) {
-            String name = file.getFileName().toString().replace(".litematic", "");
+            String name = schematicsFolder.relativize(file).toString().replace(".litematic", "");
             FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 
             row.child(
@@ -132,7 +132,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
     private List<Path> getLitematicaFiles() {
         try {
             if (!Files.exists(schematicsFolder)) return List.of();
-            return Files.list(schematicsFolder)
+            return Files.walk(schematicsFolder)
                     .filter(p -> p.getFileName().toString().endsWith(".litematic"))
                     .collect(Collectors.toList());
         } catch (IOException e) {
