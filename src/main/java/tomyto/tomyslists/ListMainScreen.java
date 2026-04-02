@@ -112,32 +112,34 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 .horizontalAlignment(HorizontalAlignment.LEFT)
                 .verticalAlignment(VerticalAlignment.TOP);
 
-        //Top bar
+//Top bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
 
 
-                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
+                        .child(Components.button(Component.literal("Open new material list"), btn -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
                                 .margins(Insets.both(10,5))
-                                .sizing(Sizing.fill(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Bring items with similar names near the selected item"))
-                        )
-
-                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
-                                .margins(Insets.both(10,5))
-                                .sizing(Sizing.fill(12), Sizing.fill(80))
-                                .tooltip(Component.literal("Groups all the items in the material list"))
-                        )
-
-
-                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
-                                .margins(Insets.both(10,5))
-                                .sizing(Sizing.fill(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Undo the last grouping"))
+                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Select a litematica file to create a material list from"))
                         )
 
 
                         .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(Components.button(Component.literal("Checked off"), btn -> {
+                                                    try {
+                                                        String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+                                                        Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                                                        Minecraft.getInstance().setScreen(new CheckedOffScreen(materialFile));
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                })
+                                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                                .margins(Insets.both(3, 5))
+                                                .tooltip(Component.literal("Open menu to see all checked off items"))
+                                )
+
+
                                 .child(Components.button(Component.literal("↩"), btn -> bringBackLastItem())
                                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                                         .margins(Insets.both(3, 5))
@@ -152,7 +154,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
 
-                );
+        );
 
 
         //Scroll content
@@ -168,37 +170,41 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Bottom bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
-                        .child(Components.button(Component.literal("Open new material list"),buttonComponent -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
-                                .margins(Insets.both(10,5))
-                                .sizing(Sizing.content(), Sizing.fill(80))
-                        )
-                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
+
+                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
                                 .margins(Insets.both(10, 5))
-                                .sizing(Sizing.fill(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Manage groupings"))
-                        )
-                        .child(Components.button(Component.literal("Checked Off"), btn -> {
-                                            try {
-                                                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
-                                                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
-                                                Minecraft.getInstance().setScreen(new CheckedOffScreen(materialFile));
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
-                                        }).sizing(Sizing.content(), Sizing.fill(80))
-                                        .margins(Insets.both(10, 5))
+                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Bring similar items to the selected item"))
                         )
 
-                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                                .child(Components.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
-                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
-                                        .margins(Insets.both(3, 5))
-                                        .tooltip(Component.literal("Open tutorial"))
-                                )
-                                .horizontalAlignment(HorizontalAlignment.RIGHT)
-                                .verticalAlignment(VerticalAlignment.CENTER)
-                                .margins(Insets.right(15))
+                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
+                                .margins(Insets.both(10, 5))
+                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Undo the last grouping"))
                         )
+
+                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Groups all the items in the material list"))
+                        )
+
+                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
+                                .margins(Insets.both(10, 5))
+                                .sizing(Sizing.content(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Manage groupings"))
+                        )
+
+//                        .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+//                                .child(UIComponents.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
+//                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
+//                                        .margins(Insets.both(3, 5))
+//                                        .tooltip(Component.literal("Open tutorial"))
+//                                )
+//                                .horizontalAlignment(HorizontalAlignment.RIGHT)
+//                                .verticalAlignment(VerticalAlignment.CENTER)
+//                                .margins(Insets.right(15))
+//                        )
 
 
                         .verticalAlignment(VerticalAlignment.CENTER)
@@ -207,6 +213,7 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
 
         );
+
 
         loadMaterialList();
     }

@@ -109,6 +109,20 @@ public class FileUtils {
     }
 
     public static void saveSimpleFormat(Path filePath, Map<String, Integer> materials, int selectedIndex) {
+        // First collect any existing checked off lines
+        List<String> checkedOffLines = new ArrayList<>();
+        try {
+            if (Files.exists(filePath)) {
+                for (String line : Files.readAllLines(filePath)) {
+                    if (line.startsWith(CheckOffItems.CHECKEDOFF_MARKER)) {
+                        checkedOffLines.add(line);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         StringBuilder sb = new StringBuilder();
         int i = 0;
         for (Map.Entry<String, Integer> entry : materials.entrySet()) {
@@ -119,12 +133,18 @@ public class FileUtils {
             i++;
         }
 
+        // Append checked off lines at the bottom
+        for (String line : checkedOffLines) {
+            sb.append(line).append("\n");
+        }
+
         try {
             Files.writeString(filePath, sb.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     public static String formatAmount(int total) {
         int shulkers = total / (27 * 64);
