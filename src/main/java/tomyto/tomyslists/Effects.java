@@ -44,4 +44,14 @@ public class Effects {
         return selectedRow;
     }
 
+    /**
+     * Updates the tracked selected row index without touching any row's
+     * surface. Used by screens (like ListMainScreen) that now handle their
+     * own row styling but still want getSelectedRow() to report accurately
+     * for any other code that reads it.
+     */
+    public static void setSelectedRow(int index) {
+        selectedRow = index;
+    }
+
 }

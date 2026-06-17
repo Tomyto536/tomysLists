@@ -59,10 +59,48 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     private boolean skipInitScroll = false;
     private List<List<String>> undoStack = new ArrayList<>();
     private boolean isAutoGrouping = false;
+    private final Map<String, Integer> totalMap = new java.util.LinkedHashMap<>();
 
     Path schematicFolder = Minecraft.getInstance().gameDirectory.toPath()
             .resolve("config")
             .resolve("litematica");
+
+    /**
+     * Safely reads the currently-selected file name from the config file.
+     * Returns null (instead of throwing) if the config file doesn't exist,
+     * is empty, or its first line is blank.
+     */
+    private String getSelectedFileName() throws IOException {
+        Path configPath = schematicFolder.resolve(configFile);
+        if (!Files.exists(configPath)) return null;
+
+        List<String> lines = Files.readAllLines(configPath);
+        if (lines.isEmpty()) return null;
+
+        String name = lines.get(0).trim();
+        return name.isBlank() ? null : name;
+    }
+
+    /**
+     * Delegates to {@link RowStyle#updateRowAppearances} and also keeps
+     * {@link Effects} in sync so any other screen reading
+     * {@code Effects.getSelectedRow()} stays accurate.
+     */
+    private void updateRowAppearances() {
+        Effects.setSelectedRow(selectedIndex);
+        RowStyle.updateRowAppearances(rows, selectedIndex);
+        OverlayState.setTotalCache(totalMap);   // <-- add this line
+        OverlayState.update(rowNames, selectedIndex,
+                name -> totalMap.getOrDefault(name, 0),
+                name -> {
+                    net.minecraft.resources.ResourceLocation id =
+                            net.minecraft.resources.ResourceLocation.tryParse(
+                                    "minecraft:" + name.toLowerCase().replace(" ", "_"));
+                    net.minecraft.world.item.Item item =
+                            net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id);
+                    return FileUtils.countItemInInventory(item);
+                });
+    }
 
     @Override
     public boolean keyPressed(KeyEvent input) {
@@ -75,14 +113,14 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         if (scrollUpKey.matches(input)) {
             selectedIndex = Math.max(0, selectedIndex - 1);
-            Effects.select(rows, selectedIndex);
+            updateRowAppearances();
             scrollToRow(selectedIndex);
             return true;
         }
 
         if (scrollDownKey.matches(input)) {
             selectedIndex = Math.min(rows.size() - 1, selectedIndex + 1);
-            Effects.select(rows, selectedIndex);
+            updateRowAppearances();
             scrollToRow(selectedIndex);
             return true;
         }
@@ -112,34 +150,29 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 .horizontalAlignment(HorizontalAlignment.LEFT)
                 .verticalAlignment(VerticalAlignment.TOP);
 
-//Top bar
+        //Top bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
 
-
-                        .child(Components.button(Component.literal("Open new material list"), btn -> {Minecraft.getInstance().setScreen(new LitematicaImportScreen());})
+                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
                                 .margins(Insets.both(10,5))
-                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Select a litematica file to create a material list from"))
+                                .sizing(Sizing.fill(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Bring items with similar names near the selected item"))
                         )
 
+                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.fill(12), Sizing.fill(80))
+                                .tooltip(Component.literal("Groups all the items in the material list"))
+                        )
+
+                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
+                                .margins(Insets.both(10,5))
+                                .sizing(Sizing.fill(10), Sizing.fill(80))
+                                .tooltip(Component.literal("Undo the last grouping"))
+                        )
 
                         .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                                .child(Components.button(Component.literal("Checked off"), btn -> {
-                                                    try {
-                                                        String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
-                                                        Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
-                                                        Minecraft.getInstance().setScreen(new CheckedOffScreen(materialFile));
-                                                    } catch (IOException e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                })
-                                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                                .margins(Insets.both(3, 5))
-                                                .tooltip(Component.literal("Open menu to see all checked off items"))
-                                )
-
-
                                 .child(Components.button(Component.literal("↩"), btn -> bringBackLastItem())
                                         .sizing(Sizing.fixed(20), Sizing.fill(80))
                                         .margins(Insets.both(3, 5))
@@ -153,14 +186,13 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
-
         );
-
 
         //Scroll content
         scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        scrollContent.padding(Insets.top(4));
 
-        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(79), scrollContent);
+        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.expand(), scrollContent);
         rootComponent.child(
                 scrollContainer
                         .surface(Surface.DARK_PANEL)
@@ -170,55 +202,58 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         //Bottom bar
         rootComponent.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32))
-
-                        .child(Components.button(Component.literal("Group"), btn -> groupSelectedItem())
-                                .margins(Insets.both(10, 5))
-                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Bring similar items to the selected item"))
+                        .child(Components.button(Component.literal("Open new material list"), buttonComponent -> {
+                                            Minecraft.getInstance().setScreen(new MaterialListScreen());
+                                        })
+                                        .margins(Insets.both(10,5))
+                                        .sizing(Sizing.content(), Sizing.fill(80))
+                        )
+                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {
+                                            Minecraft.getInstance().setScreen(new GroupingScreen());
+                                        })
+                                        .margins(Insets.both(10, 5))
+                                        .sizing(Sizing.fill(10), Sizing.fill(80))
+                                        .tooltip(Component.literal("Manage groupings"))
+                        )
+                        .child(Components.button(Component.literal("Checked Off"), btn -> {
+                                            try {
+                                                String selectedFileName = getSelectedFileName();
+                                                if (selectedFileName == null) return;
+                                                Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
+                                                Minecraft.getInstance().setScreen(new CheckedOffScreen(materialFile));
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        })
+                                        .sizing(Sizing.content(), Sizing.fill(80))
+                                        .margins(Insets.both(10, 5))
                         )
 
-                        .child(Components.button(Component.literal("Undo"), btn -> undoGrouping())
-                                .margins(Insets.both(10, 5))
-                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Undo the last grouping"))
+                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                                .child(Components.button(
+                                                Component.literal(OverlayState.isVisible() ? "HUD ✓" : "HUD"),
+                                                btn -> {
+                                                    OverlayState.toggle();
+                                                    btn.setMessage(Component.literal(OverlayState.isVisible() ? "HUD ✓" : "HUD"));
+                                                    updateRowAppearances(); // push current state to overlay
+                                                })
+                                        .sizing(Sizing.fixed(40), Sizing.fill(80))
+                                        .margins(Insets.both(3, 5))
+                                        .tooltip(Component.literal("Toggle HUD overlay"))
+                                )
+                                .horizontalAlignment(HorizontalAlignment.RIGHT)
+                                .verticalAlignment(VerticalAlignment.CENTER)
+                                .margins(Insets.right(15))
                         )
-
-                        .child(Components.button(Component.literal("Auto Group"), btn -> autoGroup())
-                                .margins(Insets.both(10,5))
-                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Groups all the items in the material list"))
-                        )
-
-                        .child(Components.button(Component.literal("Groupings"), buttonComponent -> {Minecraft.getInstance().setScreen(new GroupingScreen());})
-                                .margins(Insets.both(10, 5))
-                                .sizing(Sizing.content(10), Sizing.fill(80))
-                                .tooltip(Component.literal("Manage groupings"))
-                        )
-
-//                        .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-//                                .child(UIComponents.button(Component.literal("i"), btn -> Minecraft.getInstance().setScreen(new TutorialScreen()))
-//                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
-//                                        .margins(Insets.both(3, 5))
-//                                        .tooltip(Component.literal("Open tutorial"))
-//                                )
-//                                .horizontalAlignment(HorizontalAlignment.RIGHT)
-//                                .verticalAlignment(VerticalAlignment.CENTER)
-//                                .margins(Insets.right(15))
-//                        )
-
 
                         .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(10,5))
-
-
         );
-
 
         loadMaterialList();
     }
 
-    //Scroll to selected row on opening
     @Override
     public void init() {
         super.init();
@@ -234,12 +269,11 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-
     @Override
     public void onClose() {
         try {
-            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
-            if (!selectedFileName.isBlank()) {
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName != null) {
                 Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
                 Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
                 FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
@@ -250,15 +284,10 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         super.onClose();
     }
 
-
     private void loadMaterialList() {
-        Path configPath = schematicFolder.resolve(configFile);
-
-        if (!Files.exists(configPath)) return;
-
         try {
-            String selectedFileName = Files.readAllLines(configPath).get(0).trim();
-            if (selectedFileName.isBlank()) return;
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName == null) return;
 
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             if (!Files.exists(materialFile)) return;
@@ -271,22 +300,18 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             int savedIndex = FileUtils.getSelectedIndex(materialFile);
             if (savedIndex >= 0) {
                 selectedIndex = savedIndex;
-                Effects.select(rows, selectedIndex);
+                updateRowAppearances();
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
     private void addRow(String name, int total) {
-        //Skip the line if item is checked off
+        // Skip checked-off items
         if (name.startsWith(CheckOffItems.CHECKEDOFF_MARKER)) return;
-
-
-
+        totalMap.put(name, total);
 
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
         row.verticalAlignment(VerticalAlignment.CENTER);
@@ -298,9 +323,25 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
         ItemStack stack = new ItemStack(item);
 
-        //Decide color of text
+        // Inventory count and diff
         int playerCount = FileUtils.countItemInInventory(item);
         int textColor = playerCount >= total ? 0x55FF55 : 0xFFFFFF;
+        int diff = playerCount - total;
+        int diffColor = diff >= 0 ? 0x55FF55 : 0xFF5555;
+
+        // Hover tooltip: break the absolute diff into shulkers, stacks, and items
+        int absDiff = Math.abs(diff);
+        int shulkers = absDiff / 1728;
+        int remainAfterShulkers = absDiff % 1728;
+        int stacks = remainAfterShulkers / 64;
+        int items = remainAfterShulkers % 64;
+        StringBuilder diffTooltip = new StringBuilder();
+        if (diff != 0) {
+            diffTooltip.append(diff >= 0 ? "Surplus: +" : "Missing: ");
+            if (shulkers > 0) diffTooltip.append(shulkers).append(" shulker").append(shulkers > 1 ? "s" : "").append(" ");
+            if (stacks > 0)   diffTooltip.append(stacks).append(" stack").append(stacks > 1 ? "s" : "").append(" ");
+            if (items > 0 || (shulkers == 0 && stacks == 0)) diffTooltip.append(items).append(" item").append(items != 1 ? "s" : "");
+        }
 
         // Item icon
         row.child(
@@ -316,36 +357,60 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                         .margins(Insets.both(5, 4))
         );
 
-        // Total count
-        row.child(
+        // Count + optional diff in parens, as two labels inside a right-aligned container
+        FlowLayout countCell = Containers.horizontalFlow(Sizing.fill(65), Sizing.content());
+        countCell.horizontalAlignment(HorizontalAlignment.RIGHT);
+        countCell.verticalAlignment(VerticalAlignment.CENTER);
+        countCell.margins(Insets.both(5, 4));
+
+        countCell.child(
                 Components.label(Component.literal(FileUtils.formatAmount(total)))
-                        .horizontalTextAlignment(HorizontalAlignment.LEFT)
+                        .horizontalTextAlignment(HorizontalAlignment.RIGHT)
                         .color(Color.ofRgb(textColor))
-                        .sizing(Sizing.fill(65), Sizing.content())
-                        .margins(Insets.both(5, 4))
+                        .sizing(Sizing.content(), Sizing.content())
         );
 
-        row.child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
-                .child(Components.button(Component.literal("✓"), btn -> checkOffItem())
-                        .sizing(Sizing.fixed(20), Sizing.fill(80))
-                        .margins(Insets.both(3, 5))
-                )
-                .horizontalAlignment(HorizontalAlignment.RIGHT)
-                .verticalAlignment(VerticalAlignment.CENTER)
-                .margins(Insets.right(10))
+        if (diff != 0) {
+            String diffText = " (" + (diff > 0 ? "+" : "") + diff + ")";
+            countCell.child(
+                    Components.label(Component.literal(diffText))
+                            .horizontalTextAlignment(HorizontalAlignment.RIGHT)
+                            .color(Color.ofRgb(diffColor))
+                            .tooltip(Component.literal(diffTooltip.toString().trim()))
+                            .sizing(Sizing.content(), Sizing.content())
+            );
+        }
+
+        row.child(countCell);
+
+        // Checkmark button — no background chip, just the button flush to the right
+        row.child(
+                Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                        .child(
+                                Components.button(Component.literal("\u2713"), btn -> {
+                                            selectedIndex = rows.indexOf(row);
+                                            updateRowAppearances();
+                                            checkOffItem();
+                                        })
+                                        .sizing(Sizing.fixed(20), Sizing.fill(80))
+                                        .margins(Insets.both(2, 0))
+                        )
+                        .horizontalAlignment(HorizontalAlignment.RIGHT)
+                        .verticalAlignment(VerticalAlignment.CENTER)
+                        .margins(Insets.right(10))
         );
 
-        row.surface(Surface.DARK_PANEL)
+        int rowIndex = rows.size();
+        row.surface(Surface.flat(rowIndex % 2 == 0 ? RowStyle.ROW_COLOR_EVEN : RowStyle.ROW_COLOR_ODD))
                 .margins(Insets.both(5, 0));
 
         rows.add(row);
         rowNames.add(name);
         scrollContent.child(row);
 
-        int rowIndex = rows.size() - 1; // capture index before adding
         row.mouseDown().subscribe((click, doubled) -> {
             selectedIndex = rows.indexOf(row);
-            Effects.select(rows, rows.indexOf(row));
+            updateRowAppearances();
             return true;
         });
     }
@@ -362,8 +427,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
         io.wispforest.owo.ui.core.Component row = rows.get(index);
         int rowTop = row.y();
         int rowBottom = rowTop + row.height();
-
-
 
         if (rowTop < viewportTop) {
             int targetIndex = Math.max(0, index - 3);
@@ -382,16 +445,15 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         String selectedName = rowNames.get(selectedIndex);
         try {
-            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName == null) return;
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             GroupingUtils.groupItemsAfterSelected(materialFile, schematicFolder.resolve(configFile), selectedName);
 
-            // Find which rows match the grouping and need to move
             Map<String, List<String>> groupings = GroupingUtils.loadGroupings(schematicFolder.resolve(configFile));
             Map.Entry<String, List<String>> matchedGrouping = GroupingUtils.findGroupingForItem(selectedName, groupings);
             if (matchedGrouping == null) return;
 
-            // Find matching row indices (excluding selected)
             List<Integer> matchingIndices = new ArrayList<>();
             for (int i = 0; i < rowNames.size(); i++) {
                 if (i == selectedIndex) continue;
@@ -402,7 +464,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 if (matches && !isIgnored) matchingIndices.add(i);
             }
 
-            // Remove matching rows from their current positions (in reverse to preserve indices)
             List<FlowLayout> matchingRows = new ArrayList<>();
             List<String> matchingNames = new ArrayList<>();
             for (int i = matchingIndices.size() - 1; i >= 0; i--) {
@@ -413,7 +474,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 if (idx < selectedIndex) selectedIndex--;
             }
 
-            // Insert matching rows right after selected
             int insertAt = selectedIndex + 1;
             for (int i = 0; i < matchingRows.size(); i++) {
                 rows.add(insertAt + i, matchingRows.get(i));
@@ -421,9 +481,8 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
                 scrollContent.child(insertAt + i, matchingRows.get(i));
             }
 
-            Effects.select(rows, selectedIndex);
+            updateRowAppearances();
 
-            // Save new order to file
             Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
             FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
 
@@ -437,7 +496,6 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         List<String> previousOrder = undoStack.remove(undoStack.size() - 1);
 
-        // Reorder rows and rowNames to match previous order
         List<FlowLayout> newRows = new ArrayList<>();
         List<String> newRowNames = new ArrayList<>();
 
@@ -449,10 +507,10 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
 
-        // Update scroll content order
         scrollContent.clearChildren();
         rows.clear();
         rowNames.clear();
+        totalMap.clear();
 
         for (int i = 0; i < newRows.size(); i++) {
             rows.add(newRows.get(i));
@@ -460,11 +518,11 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             scrollContent.child(newRows.get(i));
         }
 
-        Effects.select(rows, selectedIndex);
+        updateRowAppearances();
 
-        // Save to file
         try {
-            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName == null) return;
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
             FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
@@ -504,17 +562,17 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
         isAutoGrouping = false;
 
-        // Restore selected row by name
         if (selectedName != null) {
             int restoredIndex = rowNames.indexOf(selectedName);
             if (restoredIndex >= 0) {
                 selectedIndex = restoredIndex;
-                Effects.select(rows, selectedIndex);
+                updateRowAppearances();
             }
         }
 
         try {
-            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName == null) return;
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             Map<String, Integer> materials = FileUtils.loadMaterialList(materialFile);
             FileUtils.saveSimpleFormat(materialFile, materials, selectedIndex);
@@ -525,21 +583,22 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
 
     private void bringBackLastItem() {
         try {
-            String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+            String selectedFileName = getSelectedFileName();
+            if (selectedFileName == null) return;
             Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
             String restoredName = CheckOffItems.bringBack(materialFile);
 
             rows.clear();
             rowNames.clear();
+            totalMap.clear();
             scrollContent.clearChildren();
             loadMaterialList();
 
-            // Select the restored item
             if (restoredName != null) {
                 int restoredIndex = rowNames.indexOf(restoredName);
                 if (restoredIndex >= 0) {
                     selectedIndex = restoredIndex;
-                    Effects.select(rows, selectedIndex);
+                    updateRowAppearances();
                 }
             }
 
@@ -552,27 +611,23 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void checkOffItem() {
-
         if (selectedIndex >= 0 && selectedIndex < rows.size()) {
-            // Get the name from the selected row's label
             String name = rowNames.get(selectedIndex);
 
-            // Remove from display
             scrollContent.removeChild(rows.get(selectedIndex));
             rows.remove(selectedIndex);
             rowNames.remove(selectedIndex);
 
-            // Clamp selected index
             selectedIndex = Math.min(selectedIndex, rows.size() - 1);
             if (selectedIndex >= 0) {
-                Effects.select(rows, selectedIndex);
+                updateRowAppearances();
             }
 
             Minecraft.getInstance().player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP);
 
-            // Save to file
             try {
-                String selectedFileName = Files.readAllLines(schematicFolder.resolve(configFile)).get(0).trim();
+                String selectedFileName = getSelectedFileName();
+                if (selectedFileName == null) return;
                 Path materialFile = schematicFolder.resolve(selectedFileName + ".txt");
                 CheckOffItems.checkOff(materialFile, name);
             } catch (IOException e) {
@@ -580,5 +635,4 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
     }
-
 }

@@ -89,6 +89,7 @@ public class CheckedOffScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
 
+        int rowIndex = 0;
         for (String line : items) {
             String[] parts = line.split(",");
             if (parts.length < 2) continue;
@@ -133,10 +134,11 @@ public class CheckedOffScreen extends BaseOwoScreen<FlowLayout> {
                     .margins(Insets.right(10))
             );
 
-            row.surface(Surface.DARK_PANEL)
+            row.surface(Surface.flat(rowIndex % 2 == 0 ? RowStyle.ROW_COLOR_EVEN : RowStyle.ROW_COLOR_ODD))
                     .margins(Insets.both(5, 0));
 
             scrollContent.child(row);
+            rowIndex++;
         }
     }
 }
