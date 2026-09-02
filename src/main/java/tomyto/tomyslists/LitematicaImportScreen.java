@@ -3,8 +3,8 @@ package tomyto.tomyslists;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.materials.MaterialListSchematic;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.Minecraft;
@@ -35,7 +35,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
-        return OwoUIAdapter.create(this, Containers::verticalFlow);
+        return OwoUIAdapter.create(this, UIContainers::verticalFlow);
     }
 
     @Override
@@ -47,18 +47,18 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
                 .padding(Insets.of(10));
 
         rootComponent.child(
-                Components.label(Component.literal("Select a litematica file"))
+                UIComponents.label(Component.literal("Select a litematica file"))
                         .horizontalTextAlignment(HorizontalAlignment.LEFT)
                         .margins(Insets.bottom(8))
         );
 
-        scrollContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        scrollContent = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         scrollContent.padding(Insets.both(5,5));
 
         loadFileList();
 
         rootComponent.child(
-                Containers.verticalScroll(Sizing.fill(90), Sizing.fill(75), scrollContent)
+                UIContainers.verticalScroll(Sizing.fill(90), Sizing.fill(75), scrollContent)
                         .verticalAlignment(VerticalAlignment.CENTER)
                         .surface(Surface.DARK_PANEL)
                         .margins(Insets.both(5,5))
@@ -66,21 +66,21 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
 
         // Bottom bar
         rootComponent.child(
-                Containers.horizontalFlow(Sizing.fill(90), Sizing.fixed(24))
+                UIContainers.horizontalFlow(Sizing.fill(90), Sizing.fixed(24))
                         .child(
-                                Components.button(Component.literal("Back"), btn ->
-                                        Minecraft.getInstance().setScreen(new MaterialListScreen())
+                                UIComponents.button(Component.literal("Back"), btn ->
+                                        Minecraft.getInstance().gui.setScreen(new MaterialListScreen())
                                 ).sizing(Sizing.fill(20), Sizing.fixed(20))
                         )
                         .child(
-                                Components.button(Component.literal("Open specific txt file"), btn ->
-                                        Minecraft.getInstance().setScreen(new MaterialListScreen())
+                                UIComponents.button(Component.literal("Open specific txt file"), btn ->
+                                        Minecraft.getInstance().gui.setScreen(new MaterialListScreen())
                                 ).sizing(Sizing.content(), Sizing.fixed(20))
                         )
 
-                        .child(Containers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
+                        .child(UIContainers.horizontalFlow(Sizing.expand(), Sizing.fill(100))
                                 .child(
-                                        Components.button(Component.literal("Import selected"), btn ->
+                                        UIComponents.button(Component.literal("Import selected"), btn ->
                                                 importSelected()
                                         ).sizing(Sizing.fill(30), Sizing.fixed(20))
                                 )
@@ -97,7 +97,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
 
         if (files.isEmpty()) {
             scrollContent.child(
-                    Components.label(Component.literal("No litematica files found"))
+                    UIComponents.label(Component.literal("No litematica files found"))
                             .margins(Insets.of(10))
             );
             return;
@@ -109,19 +109,19 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
             String folder = file.getParent().equals(schematicsFolder) ? ""
                     : schematicsFolder.relativize(file.getParent()).toString();
 
-            FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+            FlowLayout row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
 
             // Show folder in gray if in a subfolder
             if (!folder.isEmpty()) {
                 row.child(
-                        Components.label(Component.literal(folder + "/").withStyle(style -> style.withColor(0x888888)))
+                        UIComponents.label(Component.literal(folder + "/").withStyle(style -> style.withColor(0x888888)))
                                 .sizing(Sizing.content(), Sizing.content())
                                 .margins(Insets.both(5, 4))
                 );
             }
 
             row.child(
-                    Components.label(Component.literal(displayName))
+                    UIComponents.label(Component.literal(displayName))
                             .sizing(Sizing.fill(100), Sizing.content())
                             .margins(Insets.both(folder.isEmpty() ? 5 : 0, 4))
             );
@@ -158,14 +158,14 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
         if (selectedFilePath == null) return;
         List<Path> existing = findExistingTxtFiles(selectedFile);
         if (!existing.isEmpty()) {
-            Minecraft.getInstance().setScreen(new ExistingFilesPopupScreen(this, existing, selectedFile));
+            Minecraft.getInstance().gui.setScreen(new ExistingFilesPopupScreen(this, existing, selectedFile));
         } else {
             doImport();
         }
     }
 
     private void showExistingFilesPopup(List<Path> existingFiles) {
-        Minecraft.getInstance().setScreen(new ExistingFilesPopupScreen(this, existingFiles, selectedFile));
+        Minecraft.getInstance().gui.setScreen(new ExistingFilesPopupScreen(this, existingFiles, selectedFile));
     }
 
     public void doImport() {
@@ -181,7 +181,6 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
                 System.out.println("Failed to load schematic: " + selectedFile);
                 return;
             }
-
             MaterialListSchematic materialList = new MaterialListSchematic(schematic, true);
             materialList.reCreateMaterialList();
 
@@ -189,7 +188,7 @@ public class LitematicaImportScreen extends BaseOwoScreen<FlowLayout> {
 
             if (outputFile != null) {
                 saveSelectedFile(outputFile.getFileName().toString());
-                Minecraft.getInstance().setScreen(new ListMainScreen());
+                Minecraft.getInstance().gui.setScreen(new ListMainScreen());
             }
 
         } catch (Exception e) {

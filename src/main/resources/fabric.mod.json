@@ -3,7 +3,7 @@
 	"id": "tomys-lists",
 	"version": "${version}",
 	"name": "tomys-lists",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Making litematica material lists easier!",
 	"authors": [
 		"Tomyto"
 	],
@@ -29,10 +29,10 @@
 		"tomys-lists.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21.10",
-		"java": ">=21",
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
 		"fabric-api": "*",
-		"owo": ">=0.12.24"
+		"owo": ">=0.13.1+26.2"
 	}
 }

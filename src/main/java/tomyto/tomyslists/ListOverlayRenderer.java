@@ -1,11 +1,11 @@
 package tomyto.tomyslists;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,7 +17,7 @@ import java.util.List;
  *
  * Register via: HudRenderCallback.EVENT.register(new ListOverlayRenderer());
  */
-public class ListOverlayRenderer implements HudRenderCallback {
+public class ListOverlayRenderer {
 
     private static final int ROW_HEIGHT   = 20;
     private static final int PADDING      = 6;
@@ -27,8 +27,8 @@ public class ListOverlayRenderer implements HudRenderCallback {
     private static final int TEXT_GREEN   = 0xFF55FF55;
     private static final int TEXT_RED     = 0xFFFF5555;
 
-    @Override
-    public void onHudRender(GuiGraphics graphics, net.minecraft.client.DeltaTracker deltaTracker) {
+
+    public static void render(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker deltaTracker) {
         if (!OverlayState.isVisible()) return;
 
         List<String[]> items = OverlayState.getItems();
@@ -67,9 +67,9 @@ public class ListOverlayRenderer implements HudRenderCallback {
             int iconY = rowY + (ROW_HEIGHT - ICON_SIZE) / 2;
 
             // Item icon
-            ResourceLocation loc = ResourceLocation.tryParse(itemId);
+            Identifier loc = Identifier.tryParse(itemId);
             Item item = BuiltInRegistries.ITEM.getValue(loc);
-            graphics.renderItem(new ItemStack(item), iconX, iconY);
+            graphics.item(new ItemStack(item), iconX, iconY);
 
             // Count text
             int textX = iconX + ICON_SIZE + PADDING;
@@ -77,14 +77,14 @@ public class ListOverlayRenderer implements HudRenderCallback {
 
             int countColor = diff >= 0 ? TEXT_GREEN : TEXT_WHITE;
             String countStr = entry[2];
-            graphics.drawString(mc.font, countStr, textX, textY, countColor, true);
+            graphics.text(mc.font, countStr, textX, textY, countColor, true);
 
             // Diff in parens right after, colored
             if (diff != 0) {
                 String diffStr = (diff > 0 ? " (+" : " (") + diff + ")";
                 int countW = mc.font.width(countStr);
                 int diffColor = diff > 0 ? TEXT_GREEN : TEXT_RED;
-                graphics.drawString(mc.font, diffStr, textX + countW, textY, diffColor, true);
+                graphics.text(mc.font, diffStr, textX + countW, textY, diffColor, true);
             }
         }
     }

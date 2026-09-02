@@ -193,7 +193,7 @@ public class FileUtils {
             if (invStack.getItem() instanceof BlockItem blockItem
                     && blockItem.getBlock() instanceof ShulkerBoxBlock) {
                 count += invStack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)
-                        .stream()
+                        .nonEmptyItemCopyStream()
                         .filter(s -> s.getItem() == item)
                         .mapToInt(ItemStack::getCount)
                         .sum();

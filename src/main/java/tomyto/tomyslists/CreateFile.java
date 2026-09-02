@@ -19,6 +19,9 @@ public class CreateFile {
         DataDump dump = new DataDump(4, DataDump.Format.ASCII);
         int multiplier = materialList.getMultiplier();
 
+        //Sort from most amount to least
+        materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
+
         ArrayList<MaterialListEntry> list = new ArrayList<>(materialList.getMaterialsFiltered(false));
         list.sort(new MaterialListSorter(materialList));
 

@@ -1,13 +1,13 @@
 package tomyto.tomyslists;
 
 import io.wispforest.owo.ui.base.BaseOwoScreen;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
-        return OwoUIAdapter.create(this, Containers::verticalFlow);
+        return OwoUIAdapter.create(this, UIContainers::verticalFlow);
     }
 
     @Override
@@ -46,18 +46,18 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
                 .verticalAlignment(VerticalAlignment.CENTER);
 
         rootComponent.child(
-                Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100))
+                UIContainers.verticalFlow(Sizing.fill(100), Sizing.fill(100))
 
                         .child(
-                                Components.texture(
-                                        ResourceLocation.fromNamespaceAndPath("tomys-lists", "textures/tutorial.png"),
+                                UIComponents.texture(
+                                        Identifier.fromNamespaceAndPath("tomys-lists", "textures/tutorial.png"),
                                         0, 0, 1695, 1093, 1695, 1093
                                 ).sizing(Sizing.fixed(imageWidth), Sizing.fixed(imageHeight))
                         )
 
                         .child(
-                                Components.button(Component.literal("Got it!"), btn -> {
-                                            //Minecraft.getInstance().setScreen(null);
+                                UIComponents.button(Component.literal("Got it!"), btn -> {
+                                            //Minecraft.getInstance().gui.setScreen(null);
                                             onClose();
                                         })
                                         .margins(Insets.top(10))
@@ -85,7 +85,7 @@ public class TutorialScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void onClose() {
         super.onClose();
-        Minecraft.getInstance().setScreen(new ListMainScreen());
+        Minecraft.getInstance().gui.setScreen(new ListMainScreen());
     }
 
 }
