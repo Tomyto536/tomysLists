@@ -14,6 +14,7 @@ import java.util.Set;
 
 import com.mojang.authlib.yggdrasil.response.MinecraftTexturesPayload;
 import io.wispforest.owo.ui.core.Color;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
@@ -141,6 +142,11 @@ public class ListMainScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
         return OwoUIAdapter.create(this, UIContainers::verticalFlow);
+    }
+
+    @Override
+    protected void drawComponentTooltip(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float tickDelta) {
+        // Temporarily disabled: owo-lib has an unpatched NPE in its tooltip/hover-effect
     }
 
     @Override
